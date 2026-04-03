@@ -1,0 +1,1127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Athlone CC</title>
+<style>
+  :root {
+    --bg:#050d12; --surface:#091620; --surfaceB:#060f18;
+    --border:#0e3a52; --accent:#00e5ff; --accentB:#00ff9d;
+    --text:#d4f5ff; --muted:#4a8fa8; --danger:#ff2d55;
+    --nav-h:68px;
+    --glow:0 0 16px #00e5ff55; --glowG:0 0 16px #00ff9d55;
+  }
+  *, *::before, *::after { box-sizing:border-box; margin:0; padding:0; }
+  html, body { height:100%; overflow:hidden; }
+  body {
+    background:var(--bg);
+    background-image:
+      radial-gradient(ellipse at 20% 0%, #00e5ff0a 0%, transparent 60%),
+      radial-gradient(ellipse at 80% 100%, #00ff9d08 0%, transparent 60%);
+    color:var(--text);
+    font-family:'Courier New', monospace;
+    display:flex; flex-direction:column;
+  }
+  body::after {
+    content:''; position:fixed; inset:0;
+    background:repeating-linear-gradient(0deg, transparent, transparent 2px, #00000018 2px, #00000018 4px);
+    pointer-events:none; z-index:9999;
+  }
+
+  /* ── Scrollbar ── */
+  ::-webkit-scrollbar { width:4px; }
+  ::-webkit-scrollbar-track { background:#050d12; }
+  ::-webkit-scrollbar-thumb { background:#00e5ff33; border-radius:2px; }
+
+  /* ── Top bar ── */
+  #topbar {
+    background:#060e16; border-bottom:1px solid #00e5ff44;
+    padding:12px 20px; display:flex; align-items:center; gap:14;
+    flex-shrink:0; box-shadow:var(--glow);
+  }
+  #topbar .logo {
+    width:38px; height:38px; border-radius:4px;
+    background:#00e5ff18; border:1px solid var(--accent);
+    display:flex; align-items:center; justify-content:center;
+    flex-shrink:0; box-shadow:var(--glow);
+  }
+  #topbar .club-name {
+    font-size:14px; font-weight:900; color:var(--text);
+    letter-spacing:.12em; text-transform:uppercase;
+    text-shadow:0 0 12px #00e5ff88;
+  }
+  #topbar .sys-line {
+    font-size:9px; color:var(--accent); letter-spacing:.2em; margin-top:2px;
+  }
+  .status-dot {
+    width:6px; height:6px; border-radius:50%;
+    background:var(--accentB); box-shadow:var(--glowG);
+    margin-left:auto; animation:blink 2s infinite;
+  }
+  @keyframes blink { 0%,100%{opacity:1} 50%{opacity:.3} }
+
+  /* ── Page container ── */
+  #page {
+    flex:1; overflow-y:auto;
+    padding:20px 16px; padding-bottom:calc(var(--nav-h) + 20px);
+  }
+
+  /* ── Bottom nav ── */
+  #nav {
+    position:fixed; bottom:0; left:0; right:0;
+    height:var(--nav-h); background:#040c12;
+    border-top:1px solid #00e5ff55; display:flex; z-index:100;
+    box-shadow:0 -4px 24px #00e5ff18;
+  }
+  .nav-btn {
+    flex:1; display:flex; flex-direction:column;
+    align-items:center; justify-content:center; gap:3;
+    border:none; cursor:pointer; background:transparent;
+    color:var(--muted); border-top:2px solid transparent;
+    font-family:'Courier New',monospace;
+    font-size:9px; font-weight:700;
+    letter-spacing:.12em; text-transform:uppercase;
+    transition:all .2s; padding:0;
+  }
+  .nav-btn.active {
+    color:var(--accent); background:#00e5ff14;
+    border-top:2px solid var(--accent);
+    box-shadow:inset 0 -2px 12px #00e5ff22;
+  }
+  .nav-btn svg { transition:filter .2s; }
+  .nav-btn.active svg { filter:drop-shadow(0 0 4px var(--accent)); }
+
+  /* ── Page header ── */
+  .page-header { margin-bottom:24px; }
+  .page-header .sys-tag {
+    font-size:10px; color:var(--accent); letter-spacing:.2em;
+    text-transform:uppercase; margin-bottom:4px;
+  }
+  .page-header h1 {
+    font-size:22px; font-weight:900; color:var(--text);
+    letter-spacing:.04em; text-transform:uppercase;
+    text-shadow:0 0 20px #00e5ff66;
+  }
+  .page-header .sub {
+    margin-top:5px; font-size:11px; color:var(--muted); letter-spacing:.05em;
+  }
+  .page-header .header-row {
+    display:flex; align-items:flex-start; justify-content:space-between;
+  }
+  .page-header .divider {
+    height:1px; background:linear-gradient(90deg,var(--accent),transparent);
+    margin-top:14px;
+  }
+
+  /* ── Card ── */
+  .card {
+    background:linear-gradient(135deg,#091a28 0%,#060f18 100%);
+    border:1px solid #00e5ff33; border-radius:4px;
+    padding:18px; margin-bottom:12px;
+    box-shadow:0 0 20px #00e5ff0a, inset 0 1px 0 #00e5ff22;
+    position:relative; overflow:hidden;
+  }
+
+  /* ── Pill ── */
+  .pill {
+    display:inline-block; padding:2px 10px; border-radius:2px;
+    font-size:10px; font-weight:700; letter-spacing:.06em;
+    font-family:'Courier New',monospace;
+  }
+
+  /* ── Buttons ── */
+  .btn {
+    display:inline-flex; align-items:center; gap:6px;
+    padding:9px 16px; border-radius:2px; border:none;
+    cursor:pointer; font-family:'Courier New',monospace;
+    font-size:12px; font-weight:700; letter-spacing:.08em;
+    text-transform:uppercase; transition:all .2s;
+  }
+  .btn-primary { background:transparent; border:1px solid var(--accent); color:var(--accent); box-shadow:var(--glow); }
+  .btn-primary:hover { background:#00e5ff18; }
+  .btn-ghost { background:transparent; border:1px solid var(--border); color:var(--muted); }
+  .btn-ghost:hover { border-color:var(--accent); color:var(--accent); }
+  .btn-danger { background:transparent; border:1px solid #ff2d5566; color:#ff2d55; box-shadow:0 0 10px #ff2d5533; }
+  .btn-small { padding:7px 12px; font-size:11px; }
+
+  /* ── Inputs ── */
+  .input {
+    background:#071218; border:1px solid #00e5ff44; border-radius:4px;
+    padding:10px 12px; color:var(--text);
+    font-family:'Courier New',monospace; font-size:13px;
+    outline:none; width:100%;
+    box-shadow:inset 0 0 8px #00e5ff11;
+    transition:border-color .2s;
+  }
+  .input:focus { border-color:var(--accent); box-shadow:inset 0 0 12px #00e5ff22,var(--glow); }
+  select.input option { background:#071218; }
+  .label {
+    display:block; font-size:10px; color:var(--accent); font-weight:700;
+    text-transform:uppercase; letter-spacing:.14em; margin-bottom:5px;
+    font-family:'Courier New',monospace;
+  }
+
+  /* ── Section label ── */
+  .section-label {
+    font-size:10px; font-weight:700; color:var(--accent);
+    text-transform:uppercase; letter-spacing:.16em;
+    margin-bottom:10px; font-family:'Courier New',monospace;
+  }
+
+  /* ── Grid helpers ── */
+  .grid2 { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+  .flex-row { display:flex; gap:8px; }
+  .flex-between { display:flex; justify-content:space-between; align-items:center; }
+
+  /* ── Progress bar ── */
+  .progress-wrap { height:4px; background:#0e2a38; border:1px solid #00e5ff33; overflow:hidden; }
+  .progress-fill { height:100%; transition:width .4s; }
+
+  /* ── Toggle switch ── */
+  .toggle-track {
+    width:46px; height:26px; border-radius:13px; border:none;
+    cursor:pointer; position:relative; transition:all .2s; flex-shrink:0;
+  }
+  .toggle-thumb {
+    width:20px; height:20px; border-radius:10px; background:#fff;
+    position:absolute; top:3px; transition:left .2s;
+    box-shadow:0 1px 4px #0004;
+  }
+
+  /* ── Player card ── */
+  .player-card { border:1px solid #00e5ff33; border-radius:4px; margin-bottom:10px; overflow:hidden; box-shadow:0 0 12px #00e5ff08; background:linear-gradient(135deg,#091a28,#060f18); }
+  .player-card-header { display:flex; align-items:center; gap:13px; padding:13px 15px; cursor:pointer; }
+  .player-card-header:hover { background:#00e5ff08; }
+  .player-detail { padding:0 15px 16px; border-top:1px solid #00e5ff33; display:none; }
+  .player-detail.open { display:block; }
+  .info-row { display:flex; justify-content:space-between; align-items:center; padding:9px 0; border-bottom:1px solid #00e5ff18; }
+  .info-row .info-label { font-size:12px; color:var(--muted); font-weight:600; }
+  .info-row .info-value { font-size:13px; color:var(--text); font-weight:600; text-align:right; max-width:60%; }
+
+  /* ── Avatar ── */
+  .avatar {
+    width:40px; height:40px; border-radius:4px; flex-shrink:0;
+    display:flex; align-items:center; justify-content:center;
+    font-weight:900; font-size:15px; font-family:'Courier New',monospace;
+  }
+
+  /* ── Toggle buttons (team/gender) ── */
+  .toggle-btn {
+    flex:1; padding:9px; border-radius:2px;
+    font-family:'Courier New',monospace; font-size:11px; font-weight:700;
+    letter-spacing:.1em; text-transform:uppercase; cursor:pointer;
+    transition:all .2s; background:transparent; color:var(--muted);
+    border:1px solid #0e3a5288;
+  }
+  .toggle-btn.active-cyan { border-color:var(--accent); color:var(--accent); background:#00e5ff22; box-shadow:var(--glow); }
+  .toggle-btn.active-green { border-color:var(--accentB); color:var(--accentB); background:#00ff9d22; box-shadow:var(--glowG); }
+
+  /* ── Match row ── */
+  .match-row {
+    display:flex; align-items:center; justify-content:space-between;
+    background:var(--bg); border:1px solid var(--border); border-radius:4px;
+    padding:13px 14px; margin-bottom:8px;
+  }
+
+  /* ── Ratio rating display ── */
+  .ratio-display {
+    font-size:22px; font-weight:900; color:var(--accent);
+    letter-spacing:3px; font-family:'Courier New',monospace;
+    text-shadow:var(--glow);
+  }
+  .ratio-input {
+    width:52px; text-align:center; padding:8px 6px;
+    font-size:16px; font-weight:700;
+  }
+  .ratio-colon {
+    font-size:22px; font-weight:900; color:var(--accent);
+    font-family:'Courier New',monospace; text-shadow:var(--glow);
+  }
+
+  /* ── Form card ── */
+  .form-card {
+    background:linear-gradient(135deg,#091a28,#060f18);
+    border:1px solid #00e5ff66; border-radius:4px;
+    padding:18px; margin-bottom:20px;
+  }
+  .form-title { font-size:12px; font-weight:700; color:var(--accent); text-transform:uppercase; letter-spacing:.08em; margin-bottom:16px; }
+
+  /* ── Warn strip ── */
+  .warn-strip {
+    background:#ff2d5512; border:1px solid #ff2d5540; border-radius:4px;
+    padding:10px 14px; margin-bottom:16px;
+    display:flex; align-items:center; justify-content:space-between;
+  }
+  .warn-text { font-size:13px; color:#ff2d55; font-weight:700; letter-spacing:.06em; }
+
+  /* ── Chevron ── */
+  .chevron { transition:transform .2s; }
+  .chevron.open { transform:rotate(180deg); }
+
+  /* ── Empty state ── */
+  .empty { text-align:center; color:var(--muted); font-size:13px; padding:40px 0; }
+
+  /* ── Poll voter chip ── */
+  .voter-row {
+    display:flex; align-items:center; justify-content:space-between;
+    background:#071218; border:1px solid #00e5ff18; border-radius:3px;
+    padding:9px 12px; margin-bottom:6px;
+  }
+  .squad-chip {
+    padding:4px 10px; border-radius:2px; cursor:pointer;
+    font-family:'Courier New',monospace; font-size:11px; font-weight:700;
+    letter-spacing:.05em; transition:all .15s; background:transparent;
+    border:1px solid #0e3a5244; color:var(--muted);
+  }
+  .squad-chip.voted { border-color:var(--accent); color:var(--accent); background:#00e5ff22; }
+
+  /* ── Profile hero ── */
+  .profile-hero {
+    background:linear-gradient(135deg,#091a28,#060f18);
+    border:1px solid #00e5ff55; border-radius:4px;
+    padding:28px 22px; text-align:center; margin-bottom:16px;
+  }
+  .profile-avatar {
+    width:72px; height:72px; border-radius:4px; margin:0 auto 16px;
+    background:#00e5ff22; border:2px solid var(--accent);
+    box-shadow:var(--glow);
+    display:flex; align-items:center; justify-content:center;
+    font-size:22px; font-weight:900; color:var(--accent);
+    font-family:'Courier New',monospace;
+  }
+  .profile-name { font-size:20px; font-weight:900; letter-spacing:.06em; text-transform:uppercase; text-shadow:0 0 16px #00e5ff44; }
+  .profile-role { color:var(--accentB); font-weight:700; font-size:12px; margin-top:4px; letter-spacing:.12em; text-transform:uppercase; }
+  .profile-club { color:var(--muted); font-size:13px; margin-top:2px; }
+  .profile-bio { color:var(--muted); font-size:12px; margin:12px auto 0; max-width:320px; line-height:1.6; }
+  .profile-email { color:var(--muted); font-size:12px; margin-top:6px; }
+  .stat-box {
+    background:#071218; border-radius:3px; padding:14px 10px; text-align:center;
+  }
+  .stat-num { font-size:28px; font-weight:900; }
+  .stat-lbl { font-size:11px; color:var(--muted); margin-top:3px; }
+  .info-box { background:#071218; border-radius:3px; padding:10px 12px; border:1px solid #00e5ff22; }
+  .info-box-key { font-size:10px; color:var(--muted); font-weight:700; text-transform:uppercase; letter-spacing:.06em; }
+  .info-box-val { font-size:13px; color:var(--text); font-weight:600; margin-top:3px; }
+
+  /* ── Animations ── */
+  @keyframes fadeIn { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
+  .page-content > * { animation:fadeIn .25s ease; }
+
+  /* ── Hidden ── */
+  .hidden { display:none !important; }
+</style>
+</head>
+<body>
+
+<!-- Top bar -->
+<div id="topbar">
+  <div class="logo">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+      <path d="M15 5 L19 9 L9 19 L5 19 Z" fill="#00e5ff"/>
+      <line x1="5" y1="19" x2="15" y2="5" stroke="#00e5ff" stroke-width="2" stroke-linecap="round"/>
+      <circle cx="4" cy="20" r="1.5" fill="#00e5ff"/>
+    </svg>
+  </div>
+  <div>
+    <div class="club-name" id="header-club">Athlone CC</div>
+    <div class="sys-line" id="header-sys">SYS:2025/26 ▸ PLAYERS</div>
+  </div>
+  <div class="status-dot"></div>
+</div>
+
+<!-- Page -->
+<div id="page">
+  <div id="tab-Players"  class="page-content"></div>
+  <div id="tab-Ratings"  class="page-content hidden"></div>
+  <div id="tab-Fixtures" class="page-content hidden"></div>
+  <div id="tab-Practice" class="page-content hidden"></div>
+  <div id="tab-Kit"      class="page-content hidden"></div>
+  <div id="tab-Profile"  class="page-content hidden"></div>
+</div>
+
+<!-- Bottom nav -->
+<nav id="nav">
+  <button class="nav-btn active" data-tab="Players" onclick="switchTab('Players')">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="7" r="4"/><path d="M3 21v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/><path d="M21 21v-2a4 4 0 0 0-3-3.85"/></svg>
+    Players
+  </button>
+  <button class="nav-btn" data-tab="Ratings" onclick="switchTab('Ratings')">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+    Ratings
+  </button>
+  <button class="nav-btn" data-tab="Fixtures" onclick="switchTab('Fixtures')">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+    Fixtures
+  </button>
+  <button class="nav-btn" data-tab="Practice" onclick="switchTab('Practice')">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="8" y1="12" x2="8" y2="16"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="16" y1="10" x2="16" y2="16"/></svg>
+    Practice
+  </button>
+  <button class="nav-btn" data-tab="Kit" onclick="switchTab('Kit')">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
+    Kit
+  </button>
+  <button class="nav-btn" data-tab="Profile" onclick="switchTab('Profile')">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
+    Profile
+  </button>
+</nav>
+
+<script>
+// ── Data ──────────────────────────────────────────────────────────────────
+const ROLES = ["Batsman","Bowler","All-rounder","Wicket-keeper","Opening Batsman"];
+const BATTER_TYPES = ["Right-hand","Left-hand"];
+const BOWLER_TYPES = ["None","Pace – Fast","Pace – Medium Fast","Pace – Medium","Pace – Left-arm Fast","Pace – Left-arm Medium Fast","Pace – Left-arm Medium","Spin – Off-spin","Spin – Leg-spin","Spin – Left-arm orthodox","Spin – Left-arm wrist","Pace & Spin – Fast & Off-spin","Pace & Spin – Fast & Leg-spin","Pace & Spin – Medium & Off-spin","Pace & Spin – Medium & Leg-spin","Pace & Spin – Left-arm Fast & Left-arm orthodox","Pace & Spin – Left-arm Fast & Left-arm wrist","Pace & Spin – Left-arm Medium & Left-arm orthodox","Pace & Spin – Left-arm Medium & Left-arm wrist"];
+const STATUS_COLORS = { Available:"#00ff9d", Injured:"#ff6b35", Suspended:"#ff2d55" };
+const AVATAR_COLORS = ["#00e5ff","#00ff9d","#bf3aff","#ff6b35","#ff2d55","#ffe500"];
+const FORMATS = ["T20","40-over","50-over","Test","Friendly"];
+const COMPETITIONS = ["League","Cup","Friendly","Knockout"];
+const CONDITIONS = ["Excellent","Good","Fair","Poor"];
+const TEAMS = ["Team 1","Team 2","Team 3","Team 1-W"];
+
+let players = [
+  { id:1, name:"Ravi Sharma",    number:1,  role:"Batsman",       status:"Available", batterType:"Right-hand", bowlerType:"None",              carPlate:"RVS 001", feesPaid:true,  team:"Mens", gender:"Male"   },
+  { id:2, name:"James Whittle",  number:5,  role:"All-rounder",   status:"Available", batterType:"Right-hand", bowlerType:"Pace – Medium Fast", carPlate:"JWH 205", feesPaid:true,  team:"Mens", gender:"Male"   },
+  { id:3, name:"Amir Khan",      number:11, role:"Bowler",        status:"Injured",   batterType:"Left-hand",  bowlerType:"Pace – Fast",        carPlate:"AMK 311", feesPaid:false, team:"Mens", gender:"Male"   },
+  { id:4, name:"Tom Ellis",      number:2,  role:"Wicket-keeper", status:"Available", batterType:"Right-hand", bowlerType:"None",              carPlate:"TEL 402", feesPaid:true,  team:"Mens", gender:"Male"   },
+  { id:5, name:"Priya Sharma",   number:3,  role:"Batsman",       status:"Available", batterType:"Right-hand", bowlerType:"None",              carPlate:"PRS 301", feesPaid:true,  team:"Womens", gender:"Female" },
+  { id:6, name:"Sophie Lane",    number:7,  role:"All-rounder",   status:"Available", batterType:"Left-hand",  bowlerType:"Spin – Off-spin",   carPlate:"SLN 702", feesPaid:true,  team:"Womens", gender:"Female" },
+  { id:7, name:"Kezia Okafor",   number:11, role:"Bowler",        status:"Injured",   batterType:"Right-hand", bowlerType:"Pace – Medium",     carPlate:"KOK 114", feesPaid:false, team:"Womens", gender:"Female" },
+];
+let matches = [
+  { id:1, opponent:"Thornfield CC", date:"2026-04-12", time:"10:30", venue:"Home",    result:null,           competition:"League", format:"T20",     team:"Team 1"   },
+  { id:2, opponent:"Riverside XI",  date:"2026-04-19", time:"11:00", venue:"Away",    result:null,           competition:"Cup",    format:"50-over", team:"Team 1-W" },
+  { id:3, opponent:"Oakhill CC",    date:"2026-03-29", time:"10:00", venue:"Home",    result:"W by 6 wkts",  competition:"League", format:"T20",     team:"Team 1"   },
+  { id:4, opponent:"Greendale CC",  date:"2026-03-22", time:"11:00", venue:"Away",    result:"L by 34 runs", competition:"League", format:"T20",     team:"Team 2"   },
+  { id:5, opponent:"Millbrook CC",  date:"2026-04-26", time:"10:00", venue:"Neutral", result:null,           competition:"Cup",    format:"50-over", team:"Team 1-W" },
+];
+let equipment = [
+  { id:1, item:"Cricket Bat (Match)",     total:15, distributed:11, condition:"Good"      },
+  { id:2, item:"Batting Helmet",          total:12, distributed:10, condition:"Good"      },
+  { id:3, item:"Batting Gloves (pair)",   total:20, distributed:16, condition:"Fair"      },
+  { id:4, item:"Batting Pads (pair)",     total:14, distributed:12, condition:"Good"      },
+  { id:5, item:"Cricket Ball (Match)",    total:30, distributed:14, condition:"Excellent" },
+  { id:6, item:"Cricket Ball (Training)", total:60, distributed:45, condition:"Fair"      },
+  { id:7, item:"Wicket-keeper Gloves",    total:4,  distributed:2,  condition:"Good"      },
+  { id:8, item:"Club Playing Kit",        total:18, distributed:15, condition:"Excellent" },
+];
+let ratings = { 1:{a:3,b:2}, 2:{a:4,b:3}, 3:{a:2,b:4}, 4:{a:3,b:3}, 5:{a:2,b:2}, 6:{a:4,b:1}, 7:{a:3,b:3} };
+let polls = [{ id:1, title:"Tuesday Evening Nets", date:"2026-04-08", time:"18:30", location:"Home Ground", votes:["Ravi Sharma","James Whittle","Sophie Lane"], open:true, proposer:"Alex Thornton" }];
+let profile = { name:"Alex Thornton", role:"Club Captain", club:"Athlone CC", season:"2025/26", bio:"Proud to lead this club. Focused on developing young talent and bringing home the league trophy.", email:"alex.thornton@athlonecc.co.uk", founded:"1987", ground:"Home Ground" };
+
+let activeTab = "Players";
+let playerTeamTab = "Mens";
+let playerMode = null; // null | "add" | player-id
+let openCards = new Set();
+let showAddFixture = false;
+let fixtureTeamTab = "Team 1";
+let showAddEquip = false;
+let showCreatePoll = false;
+
+// ── Utils ─────────────────────────────────────────────────────────────────
+function pill(color, text) {
+  return `<span class="pill" style="background:${color}22;color:${color};border:1px solid ${color}66">${text}</span>`;
+}
+function avatar(num, idx) {
+  const c = AVATAR_COLORS[idx % AVATAR_COLORS.length];
+  return `<div class="avatar" style="background:${c}22;border:1px solid ${c};color:${c};box-shadow:0 0 10px ${c}44">${num}</div>`;
+}
+function progressBar(pct, color) {
+  return `<div class="progress-wrap"><div class="progress-fill" style="width:${Math.min(100,pct)}%;background:linear-gradient(90deg,${color}99,${color});box-shadow:0 0 8px ${color}"></div></div>`;
+}
+function ratioDisplay(r) {
+  if (!r || (r.a === "" && r.b === "")) return `<span class="ratio-display">—</span>`;
+  return `<span class="ratio-display">${r.a}:${r.b}</span>`;
+}
+function formatDate(d) {
+  if (!d) return "";
+  try { return new Date(d).toLocaleDateString("en-GB",{day:"numeric",month:"short",year:"numeric"}); }
+  catch(e) { return d; }
+}
+function formatDateShort(d) {
+  if (!d) return "";
+  try { return new Date(d).toLocaleDateString("en-GB",{weekday:"short",day:"numeric",month:"short"}); }
+  catch(e) { return d; }
+}
+function isWin(r) { return r && (r.startsWith("W") || r.toLowerCase().startsWith("won")); }
+function isLoss(r) { return r && (r.startsWith("L") || r.toLowerCase().startsWith("lost")); }
+function resultColor(r) { return isWin(r) ? "#00ff9d" : isLoss(r) ? "#ff2d55" : "#f5c542"; }
+function condColor(c) { return c==="Excellent"?"#00ff9d":c==="Good"?"#00e5ff":c==="Fair"?"#ff6b35":"#ff2d55"; }
+function pageHeader(title, sub, actionHtml="") {
+  return `<div class="page-header">
+    <div class="header-row">
+      <div>
+        <div class="sys-tag">// SYSTEM MODULE</div>
+        <h1>${title}</h1>
+        ${sub ? `<div class="sub">${sub}</div>` : ""}
+      </div>
+      ${actionHtml}
+    </div>
+    <div class="divider"></div>
+  </div>`;
+}
+function sectionLabel(text, style="") {
+  return `<div class="section-label" style="${style}">// ${text}</div>`;
+}
+function selectOpts(arr, val) {
+  return arr.map(o => `<option${o===val?" selected":""}>${o}</option>`).join("");
+}
+function card(inner, extraStyle="") {
+  return `<div class="card" style="${extraStyle}">${inner}</div>`;
+}
+
+// ── Tab switching ─────────────────────────────────────────────────────────
+function switchTab(tab) {
+  activeTab = tab;
+  document.querySelectorAll('.page-content').forEach(el => el.classList.add('hidden'));
+  document.getElementById(`tab-${tab}`).classList.remove('hidden');
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+  document.querySelector(`[data-tab="${tab}"]`).classList.add('active');
+  document.getElementById('header-sys').textContent = `SYS:${profile.season} ▸ ${tab.toUpperCase()}`;
+  render();
+}
+function render() { window[`render${activeTab}`](); }
+
+// ── PLAYERS ───────────────────────────────────────────────────────────────
+function renderPlayers() {
+  const visible = players.filter(p => (p.team || "Mens") === playerTeamTab);
+  const unpaid = visible.filter(p => !p.feesPaid).length;
+  let html = pageHeader("Squad", `${visible.length} players · ${unpaid} fee${unpaid!==1?"s":""} outstanding`,
+    `<button class="btn btn-primary" onclick="togglePlayerMode('add')">+ Add</button>`);
+
+  // Team tabs
+  html += `<div class="flex-row" style="margin-bottom:18px">`;
+  ["Mens","Womens"].forEach(t => {
+    html += `<button class="toggle-btn${t===playerTeamTab?" active-cyan":""}" onclick="setPlayerTeamTab('${t}')">${t}</button>`;
+  });
+  html += `</div>`;
+
+  // Warning
+  if (unpaid > 0) html += `<div class="warn-strip"><span class="warn-text">⚠ ${unpaid} player${unpaid!==1?"s":""} yet to pay fees</span></div>`;
+
+  // Add form
+  if (playerMode === "add") {
+    html += `<div class="form-card">${playerForm(null, false)}</div>`;
+  }
+
+  // Edit form
+  if (playerMode && playerMode !== "add") {
+    const p = players.find(x => x.id === playerMode);
+    if (p) html += `<div class="form-card" style="border-color:#00ff9d66">${playerForm(p, true)}</div>`;
+  }
+
+  // Player list
+  if (visible.length === 0 && !playerMode) {
+    html += `<div class="empty">No ${playerTeamTab} players yet. Tap <strong>Add</strong> to register one.</div>`;
+  }
+
+  visible.forEach((p, i) => {
+    const isOpen = openCards.has(p.id);
+    const c = AVATAR_COLORS[i % AVATAR_COLORS.length];
+    const r = ratings[p.id] || {a:"",b:""};
+    html += `<div class="player-card">
+      <div class="player-card-header" onclick="toggleCard(${p.id})">
+        <div class="avatar" style="background:${c}22;border:1px solid ${c};color:${c};box-shadow:0 0 10px ${c}44;width:40px;height:40px;border-radius:4px;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:15px;font-family:'Courier New',monospace;flex-shrink:0">${p.number}</div>
+        <div style="flex:1;min-width:0">
+          <div style="font-weight:700;font-size:14px;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${p.name}</div>
+          <div style="font-size:12px;color:var(--muted)">${p.role}</div>
+        </div>
+        ${pill(STATUS_COLORS[p.status] || "#00ff9d", p.status)}
+        <svg class="chevron${isOpen?" open":""}" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="2.5" style="margin-left:4px"><polyline points="6 9 12 15 18 9"/></svg>
+      </div>
+      <div class="player-detail${isOpen?" open":""}">
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 0;border-bottom:1px solid var(--border)">
+          <span style="font-size:12px;color:var(--muted);font-weight:600">Rating</span>
+          ${ratioDisplay(r)}
+        </div>
+        ${infoRow("Full Name", p.name)}
+        ${infoRow("Jersey #", "#" + p.number)}
+        ${infoRow("Team", p.team || "Mens")}
+        ${infoRow("Gender", p.gender || "—")}
+        ${infoRow("Role", p.role)}
+        ${infoRow("Type of Batter", p.batterType || "—")}
+        ${infoRow("Type of Bowler", p.bowlerType === "None" ? "—" : p.bowlerType)}
+        ${infoRow("Car Plate", p.carPlate || "—")}
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:1px solid #00e5ff18">
+          <span style="font-size:12px;color:var(--muted);font-weight:600">Fees Paid</span>
+          ${pill(p.feesPaid ? "#00e5ff" : "#ff2d55", p.feesPaid ? "Paid ✓" : "Unpaid")}
+        </div>
+        <div style="display:flex;gap:8px;margin-top:14px">
+          <button class="btn btn-primary btn-small" onclick="editPlayer(${p.id})">✎ Edit</button>
+          <button class="btn btn-danger btn-small" onclick="deletePlayer(${p.id})">✕ Delete</button>
+        </div>
+      </div>
+    </div>`;
+  });
+
+  document.getElementById("tab-Players").innerHTML = html;
+}
+
+function infoRow(label, value) {
+  return `<div class="info-row"><span class="info-label">${label}</span><span class="info-value">${value}</span></div>`;
+}
+
+function playerForm(p, isEdit) {
+  const d = p || { name:"", number:"", role:"Batsman", status:"Available", batterType:"Right-hand", bowlerType:"None", carPlate:"", feesPaid:false, team:playerTeamTab, gender:"Male" };
+  const r = isEdit && p ? (ratings[p.id] || {a:"",b:""}) : {a:"",b:""};
+  return `
+    <div class="form-title">${isEdit ? "Edit Player" : "New Player"}</div>
+    <div style="margin-bottom:10px">
+      <label class="label">Full Name</label>
+      <input class="input" id="pf-name" placeholder="Player name" value="${d.name}">
+    </div>
+    <div style="margin-bottom:10px">
+      <label class="label">Team</label>
+      <div class="flex-row">
+        ${["Mens","Womens"].map(t => `<button class="toggle-btn${d.team===t?" active-cyan":""}" onclick="pfSetTeam(this,'${t}')">${t}</button>`).join("")}
+      </div>
+    </div>
+    <div style="margin-bottom:10px">
+      <label class="label">Gender</label>
+      <div class="flex-row">
+        ${["Male","Female"].map(g => `<button class="toggle-btn${d.gender===g?" active-green":""}" onclick="pfSetGender(this,'${g}')">${g}</button>`).join("")}
+      </div>
+    </div>
+    <div class="grid2" style="margin-bottom:10px">
+      <div><label class="label">Jersey #</label><input class="input" id="pf-number" type="number" placeholder="#" value="${d.number}"></div>
+      <div><label class="label">Role</label><select class="input" id="pf-role">${selectOpts(ROLES, d.role)}</select></div>
+    </div>
+    <div class="grid2" style="margin-bottom:10px">
+      <div><label class="label">Type of Batter</label><select class="input" id="pf-batter">${selectOpts(BATTER_TYPES, d.batterType)}</select></div>
+      <div><label class="label">Type of Bowler</label><select class="input" id="pf-bowler">${selectOpts(BOWLER_TYPES, d.bowlerType)}</select></div>
+    </div>
+    <div class="grid2" style="margin-bottom:10px">
+      <div><label class="label">Status</label><select class="input" id="pf-status">${selectOpts(Object.keys(STATUS_COLORS), d.status)}</select></div>
+      <div><label class="label">Car Plate No.</label><input class="input" id="pf-plate" placeholder="e.g. ABC 123" value="${d.carPlate}"></div>
+    </div>
+    ${isEdit ? `<div style="margin-bottom:14px">
+      <label class="label">Rating</label>
+      <div style="display:flex;align-items:center;gap:6px">
+        <input class="input ratio-input" id="pf-ra" type="number" min="0" max="99" value="${r.a}">
+        <span class="ratio-colon">:</span>
+        <input class="input ratio-input" id="pf-rb" type="number" min="0" max="99" value="${r.b}">
+      </div>
+    </div>` : ""}
+    <div style="display:flex;align-items:center;justify-content:space-between;background:#071218;border:1px solid #00e5ff33;border-radius:4px;padding:12px 14px;margin-bottom:18px">
+      <div>
+        <div style="font-size:13px;font-weight:700;color:var(--text)">Fees Paid</div>
+        <div style="font-size:11px;color:var(--muted)">Club membership fee</div>
+      </div>
+      <button class="toggle-track" id="pf-fees-btn" onclick="pfToggleFees(this)"
+        style="background:${d.feesPaid?"var(--accent)":"#0e2a38"};border:1px solid ${d.feesPaid?"var(--accent)":"var(--border)"};box-shadow:${d.feesPaid?"var(--glow)":"none"}"
+        data-fees="${d.feesPaid}">
+        <div class="toggle-thumb" style="left:${d.feesPaid?23:3}px"></div>
+      </button>
+    </div>
+    <div class="flex-row">
+      <button class="btn btn-primary" onclick="savePlayer(${isEdit ? p.id : "null"})">${isEdit ? "Save Changes" : "Add to Squad"}</button>
+      <button class="btn btn-ghost" onclick="cancelPlayer()">Cancel</button>
+    </div>`;
+}
+
+function pfSetTeam(btn, team) {
+  btn.closest('.flex-row').querySelectorAll('.toggle-btn').forEach(b => b.className = 'toggle-btn');
+  btn.className = 'toggle-btn active-cyan';
+}
+function pfSetGender(btn, gender) {
+  btn.closest('.flex-row').querySelectorAll('.toggle-btn').forEach(b => b.className = 'toggle-btn');
+  btn.className = 'toggle-btn active-green';
+}
+function pfToggleFees(btn) {
+  const fees = btn.dataset.fees === "true";
+  btn.dataset.fees = !fees;
+  btn.style.background = !fees ? "var(--accent)" : "#0e2a38";
+  btn.style.border = `1px solid ${!fees ? "var(--accent)" : "var(--border)"}`;
+  btn.style.boxShadow = !fees ? "var(--glow)" : "none";
+  btn.querySelector('.toggle-thumb').style.left = (!fees ? 23 : 3) + "px";
+}
+function toggleCard(id) {
+  if (openCards.has(id)) openCards.delete(id); else openCards.add(id);
+  renderPlayers();
+}
+function setPlayerTeamTab(t) { playerTeamTab = t; playerMode = null; renderPlayers(); }
+function togglePlayerMode(m) { playerMode = playerMode === m ? null : m; renderPlayers(); }
+function editPlayer(id) { playerMode = id; openCards.delete(id); renderPlayers(); }
+function cancelPlayer() { playerMode = null; renderPlayers(); }
+function deletePlayer(id) { players = players.filter(p => p.id !== id); openCards.delete(id); renderPlayers(); }
+
+function savePlayer(editId) {
+  const name = document.getElementById('pf-name')?.value?.trim();
+  const number = document.getElementById('pf-number')?.value;
+  if (!name || !number) return;
+  const teamBtn = document.querySelector('#tab-Players .form-card .active-cyan');
+  const genderBtn = document.querySelector('#tab-Players .form-card .active-green');
+  const team = teamBtn ? teamBtn.textContent.trim() : playerTeamTab;
+  const gender = genderBtn ? genderBtn.textContent.trim() : "Male";
+  const feesPaid = document.getElementById('pf-fees-btn')?.dataset.fees === "true";
+  const data = {
+    name, number:+number,
+    role: document.getElementById('pf-role')?.value,
+    batterType: document.getElementById('pf-batter')?.value,
+    bowlerType: document.getElementById('pf-bowler')?.value,
+    status: document.getElementById('pf-status')?.value,
+    carPlate: document.getElementById('pf-plate')?.value || "",
+    team, gender, feesPaid,
+  };
+  if (editId) {
+    const ra = document.getElementById('pf-ra')?.value;
+    const rb = document.getElementById('pf-rb')?.value;
+    if (ra !== "" && ra !== undefined) ratings[editId] = { a:+ra, b:+rb||0 };
+    players = players.map(p => p.id === editId ? { ...p, ...data } : p);
+  } else {
+    const id = Date.now();
+    players.push({ ...data, id });
+    ratings[id] = {a:"",b:""};
+  }
+  playerMode = null;
+  renderPlayers();
+}
+
+// ── RATINGS ───────────────────────────────────────────────────────────────
+function renderRatings() {
+  let html = pageHeader("Ratings", "Set each player's rating");
+  players.forEach((p, i) => {
+    const r = ratings[p.id] || {a:"",b:""};
+    const c = AVATAR_COLORS[i % AVATAR_COLORS.length];
+    html += card(`
+      <div style="display:flex;align-items:center;gap:14px">
+        <div class="avatar" style="background:${c}22;border:1px solid ${c};color:${c};box-shadow:0 0 8px ${c}44;width:38px;height:38px;border-radius:4px;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:15px;font-family:'Courier New',monospace;flex-shrink:0">${p.number}</div>
+        <div style="flex:1">
+          <div style="font-weight:700;color:var(--text)">${p.name}</div>
+          <div style="font-size:12px;color:var(--muted)">${p.role}</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:6px">
+          <input class="input ratio-input" type="number" min="0" max="99" value="${r.a}" oninput="setRating(${p.id},'a',this.value)">
+          <span class="ratio-colon">:</span>
+          <input class="input ratio-input" type="number" min="0" max="99" value="${r.b}" oninput="setRating(${p.id},'b',this.value)">
+        </div>
+      </div>`);
+  });
+  document.getElementById("tab-Ratings").innerHTML = html;
+}
+function setRating(id, key, val) {
+  if (!ratings[id]) ratings[id] = {a:"",b:""};
+  ratings[id][key] = val === "" ? "" : +val;
+}
+
+// ── FIXTURES ──────────────────────────────────────────────────────────────
+function renderFixtures() {
+  const allVisible = matches.filter(m => (m.team || "Team 1") === fixtureTeamTab);
+  const upcoming = allVisible.filter(m=>!m.result).sort((a,b)=>a.date.localeCompare(b.date));
+  const past = allVisible.filter(m=>m.result).sort((a,b)=>b.date.localeCompare(a.date));
+  let html = pageHeader("Fixtures", `${upcoming.length} upcoming · ${past.length} played`,
+    `<button class="btn btn-primary" onclick="toggleAddFixture()">+ Add</button>`);
+
+  // Team tabs
+  html += `<div style="display:flex;gap:6px;margin-bottom:18px;flex-wrap:wrap">`;
+  ["Team 1","Team 2","Team 3","Team 1-W"].forEach(t => {
+    html += `<button class="toggle-btn${t===fixtureTeamTab?" active-cyan":""}" style="flex:unset;padding:8px 12px" onclick="setFixtureTeamTab('${t}')">${t}</button>`;
+  });
+  html += `</div>`;
+
+  if (showAddFixture) {
+    html += `<div class="form-card">
+      <div class="form-title">New Fixture</div>
+      <div style="margin-bottom:10px"><label class="label">Opponent Club</label><input class="input" id="fx-opp" placeholder="e.g. Thornfield CC"></div>
+      <div style="margin-bottom:10px">
+        <label class="label">Team</label>
+        <select class="input" id="fx-team">${selectOpts(TEAMS, "Team 1")}</select>
+      </div>
+      <div class="grid2" style="margin-bottom:10px">
+        <div><label class="label">Date</label><input class="input" id="fx-date" type="date"></div>
+        <div><label class="label">Time</label><input class="input" id="fx-time" type="time"></div>
+        <div><label class="label">Format</label><select class="input" id="fx-format">${selectOpts(FORMATS,"T20")}</select></div>
+        <div><label class="label">Venue</label><select class="input" id="fx-venue">${selectOpts(["Home","Away","Neutral"],"Home")}</select></div>
+      </div>
+      <div style="margin-bottom:14px"><label class="label">Competition</label><select class="input" id="fx-comp">${selectOpts(COMPETITIONS,"League")}</select></div>
+      <div class="flex-row">
+        <button class="btn btn-primary" onclick="addFixture()">Add Fixture</button>
+        <button class="btn btn-ghost" onclick="toggleAddFixture()">Cancel</button>
+      </div>
+    </div>`;
+  }
+
+  if (upcoming.length > 0) {
+    html += sectionLabel("Upcoming Fixtures");
+    upcoming.forEach(m => { html += matchRow(m); });
+  }
+  if (past.length > 0) {
+    html += sectionLabel("Results", "margin-top:20px");
+    past.forEach(m => { html += matchRow(m); });
+  }
+  if (upcoming.length === 0 && past.length === 0 && !showAddFixture) {
+    html += `<div class="empty">No fixtures for <strong>${fixtureTeamTab}</strong> yet. Tap <strong>Add</strong> to schedule one.</div>`;
+  }
+  document.getElementById("tab-Fixtures").innerHTML = html;
+}
+function setFixtureTeamTab(t) { fixtureTeamTab = t; showAddFixture = false; renderFixtures(); }
+function fxSetTeam(btn, team) {
+  btn.closest('.flex-row').querySelectorAll('.toggle-btn').forEach(b => { b.classList.remove('active-cyan'); });
+  btn.classList.add('active-cyan');
+}
+function matchRow(m) {
+  const rc = m.result ? resultColor(m.result) : null;
+  return `<div class="match-row">
+    <div style="flex:1;min-width:0">
+      <div style="font-weight:800;color:var(--text);font-size:14px">vs ${m.opponent}</div>
+      <div style="font-size:11px;color:var(--accent);font-family:'Courier New',monospace;margin-top:2px;letter-spacing:.06em">${m.team || "Team 1"}</div>
+      <div style="font-size:12px;color:var(--muted);margin-top:2px">${formatDate(m.date)}${m.time?" · "+m.time:""}</div>
+      ${m.result ? `<div style="font-size:12px;font-weight:700;color:${rc};margin-top:3px">${m.result}</div>` : ""}
+    </div>
+    <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;justify-content:flex-end;margin-left:8px">
+      ${pill("var(--muted)", m.format)}
+      ${pill("var(--muted)", m.competition)}
+      ${!m.result ? pill(m.venue==="Home"?"var(--accent)":"#ff6b35", m.venue) : ""}
+      ${m.result ? pill(rc, isWin(m.result)?"W":isLoss(m.result)?"L":"D") : ""}
+      <button onclick="deleteFixture(${m.id})" style="background:none;border:none;cursor:pointer;color:var(--muted);font-size:14px;padding:2px 6px;border-radius:4px;line-height:1;transition:color .2s" onmouseover="this.style.color='#ff2d55'" onmouseout="this.style.color='var(--muted)'">✕</button>
+    </div>
+  </div>`;
+}
+function deleteFixture(id) { matches = matches.filter(m => m.id !== id); renderFixtures(); }
+function toggleAddFixture() { showAddFixture = !showAddFixture; renderFixtures(); }
+function addFixture() {
+  const opp = document.getElementById('fx-opp')?.value?.trim();
+  const date = document.getElementById('fx-date')?.value;
+  if (!opp || !date) return;
+  const team = document.getElementById('fx-team')?.value || "Team 1";
+  matches.push({ id:Date.now(), opponent:opp, date, time:document.getElementById('fx-time')?.value||"", venue:document.getElementById('fx-venue')?.value, result:null, competition:document.getElementById('fx-comp')?.value, format:document.getElementById('fx-format')?.value, team });
+  showAddFixture = false;
+  renderFixtures();
+}
+
+// ── PRACTICE POLLS ────────────────────────────────────────────────────────
+function renderPractice() {
+  const open = polls.filter(p=>p.open).length;
+  let html = pageHeader("Practice Polls", `${open} active poll${open!==1?"s":""}`,
+    `<button class="btn btn-primary" onclick="toggleCreatePoll()">+ New Poll</button>`);
+
+  if (showCreatePoll) {
+    html += `<div class="form-card">
+      <div class="form-title">New Practice Poll</div>
+      <div style="margin-bottom:10px"><label class="label">Session Title</label><input class="input" id="po-title" placeholder="e.g. Tuesday Evening Nets"></div>
+      <div class="grid2" style="margin-bottom:10px">
+        <div><label class="label">Date</label><input class="input" id="po-date" type="date"></div>
+        <div><label class="label">Time</label><input class="input" id="po-time" type="time"></div>
+      </div>
+      <div style="margin-bottom:16px"><label class="label">Location</label><input class="input" id="po-loc" placeholder="e.g. Home Ground"></div>
+      <div class="flex-row">
+        <button class="btn btn-primary" onclick="createPoll()">Create Poll</button>
+        <button class="btn btn-ghost" onclick="toggleCreatePoll()">Cancel</button>
+      </div>
+    </div>`;
+  }
+
+  if (polls.length === 0) html += `<div class="empty">No polls yet. Create one to get started.</div>`;
+
+  polls.forEach(poll => {
+    const allNames = players.map(p => p.name);
+    html += `<div class="card" style="margin-bottom:16px">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px">
+        <div style="flex:1;min-width:0">
+          <div style="font-weight:800;font-size:15px;color:var(--text)">${poll.title}</div>
+          <div style="font-size:12px;color:var(--muted);margin-top:3px">${formatDateShort(poll.date)}${poll.time?" · "+poll.time:""}${poll.location?" · "+poll.location:""}</div>
+          ${poll.proposer ? `<div style="font-size:11px;color:var(--accentB);margin-top:5px;font-family:'Courier New',monospace;letter-spacing:.06em">Proposed by ${poll.proposer}</div>` : ""}
+        </div>
+        <div style="margin-left:8px;flex-shrink:0">${pill(poll.open?"var(--accent)":"var(--muted)",poll.open?"Open":"Closed")}</div>
+      </div>
+      <div style="background:#071218;border:1px solid #00e5ff22;border-radius:4px;padding:10px 14px;margin-bottom:14px;display:flex;align-items:center;justify-content:space-between">
+        <span style="font-size:13px;color:var(--muted);font-weight:600">Players attending</span>
+        <span style="font-size:22px;font-weight:900;color:var(--accent)">${poll.votes.length}</span>
+      </div>
+      ${poll.open ? `
+      <div style="margin-bottom:14px">
+        <label class="label">Vote / Add your name</label>
+        <div style="display:flex;gap:8px;margin-bottom:10px">
+          <input class="input" id="voter-${poll.id}" placeholder="Your name" style="flex:1" onkeydown="if(event.key==='Enter'){castVote(${poll.id})}">
+          <button class="btn btn-primary" onclick="castVote(${poll.id})">I'm In ✓</button>
+        </div>
+        ${allNames.length > 0 ? `
+        <div style="font-size:11px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px">Quick pick from squad</div>
+        <div style="display:flex;flex-wrap:wrap;gap:6px">
+          ${allNames.map(n => `<button class="squad-chip${poll.votes.includes(n)?" voted":""}" onclick="toggleVote(${poll.id},'${n.replace(/'/g,"\\'")}')">
+            ${poll.votes.includes(n)?"✓ ":""}${n}
+          </button>`).join("")}
+        </div>` : ""}
+      </div>` : ""}
+      ${poll.votes.length > 0 ? `
+      <div>
+        <div style="font-size:11px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px">Attending (${poll.votes.length})</div>
+        ${poll.votes.map((name,i) => {
+          const c = AVATAR_COLORS[i % AVATAR_COLORS.length];
+          return `<div class="voter-row">
+            <div style="display:flex;align-items:center;gap:10px">
+              <div style="width:28px;height:28px;border-radius:3px;background:${c}22;border:1px solid ${c}88;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:900;color:${c};font-family:'Courier New',monospace;flex-shrink:0">${name.charAt(0).toUpperCase()}</div>
+              <span style="font-size:13px;font-weight:600;color:var(--text)">${name}</span>
+            </div>
+            ${poll.open ? `<button onclick="removeVote(${poll.id},'${name.replace(/'/g,"\\'")}');event.stopPropagation()" style="background:none;border:none;cursor:pointer;color:var(--muted);font-size:13px;padding:2px 6px;border-radius:4px">✕</button>` : ""}
+          </div>`;
+        }).join("")}
+      </div>` : `<div style="text-align:center;color:var(--muted);font-size:13px;padding:12px 0">No votes yet — be the first!</div>`}
+      <div style="display:flex;gap:8px;margin-top:14px;padding-top:12px;border-top:1px solid var(--border)">
+        ${poll.open ? `<button class="btn btn-ghost btn-small" onclick="closePoll(${poll.id})">Close Poll</button>` : ""}
+        <button class="btn btn-ghost btn-small" onclick="deletePoll(${poll.id})" style="color:#ff2d55;border-color:#ff2d5544">Delete</button>
+      </div>
+    </div>`;
+  });
+  document.getElementById("tab-Practice").innerHTML = html;
+}
+function toggleCreatePoll() { showCreatePoll = !showCreatePoll; renderPractice(); }
+function createPoll() {
+  const title = document.getElementById('po-title')?.value?.trim();
+  const date = document.getElementById('po-date')?.value;
+  if (!title || !date) return;
+  const proposer = profile.name && profile.name.trim() ? profile.name.trim() : null;
+  polls.push({ id:Date.now(), title, date, time:document.getElementById('po-time')?.value||"", location:document.getElementById('po-loc')?.value||"", votes:[], open:true, proposer });
+  showCreatePoll = false; renderPractice();
+}
+function castVote(pollId) {
+  const input = document.getElementById(`voter-${pollId}`);
+  const name = input?.value?.trim();
+  if (!name) return;
+  const poll = polls.find(p=>p.id===pollId);
+  if (poll && !poll.votes.includes(name)) poll.votes.push(name);
+  if (input) input.value = "";
+  renderPractice();
+}
+function toggleVote(pollId, name) {
+  const poll = polls.find(p=>p.id===pollId);
+  if (!poll) return;
+  if (poll.votes.includes(name)) poll.votes = poll.votes.filter(v=>v!==name);
+  else poll.votes.push(name);
+  renderPractice();
+}
+function removeVote(pollId, name) {
+  const poll = polls.find(p=>p.id===pollId);
+  if (poll) poll.votes = poll.votes.filter(v=>v!==name);
+  renderPractice();
+}
+function closePoll(id) { const p=polls.find(x=>x.id===id); if(p) p.open=false; renderPractice(); }
+function deletePoll(id) { polls=polls.filter(p=>p.id!==id); renderPractice(); }
+
+// ── KIT ROOM ──────────────────────────────────────────────────────────────
+function renderKit() {
+  let html = pageHeader("Kit Room", "Track equipment distribution",
+    `<button class="btn btn-primary" onclick="toggleAddEquip()">+ Add</button>`);
+
+  if (showAddEquip) {
+    html += `<div class="form-card">
+      <div class="form-title">New Item</div>
+      <div style="margin-bottom:10px"><label class="label">Item Name</label><input class="input" id="eq-item" placeholder="e.g. Batting Helmet"></div>
+      <div class="grid2" style="margin-bottom:10px">
+        <div><label class="label">Total Stock</label><input class="input" id="eq-total" type="number" value="0"></div>
+        <div><label class="label">Distributed</label><input class="input" id="eq-dist" type="number" value="0"></div>
+      </div>
+      <div style="margin-bottom:16px"><label class="label">Condition</label><select class="input" id="eq-cond">${selectOpts(CONDITIONS,"Good")}</select></div>
+      <div class="flex-row">
+        <button class="btn btn-primary" onclick="addEquip()">Add Item</button>
+        <button class="btn btn-ghost" onclick="toggleAddEquip()">Cancel</button>
+      </div>
+    </div>`;
+  }
+
+  equipment.forEach(e => {
+    const pct = Math.min(100, Math.round((e.distributed/(e.total||1))*100));
+    const cc = condColor(e.condition);
+    html += card(`
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+        <div style="font-weight:700;color:var(--text)">${e.item}</div>
+        ${pill(cc, e.condition)}
+      </div>
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
+        <div style="flex:1">${progressBar(pct, cc)}</div>
+        <div style="font-size:12px;color:var(--muted);white-space:nowrap">${e.distributed}/${e.total}</div>
+      </div>
+      <div class="grid2">
+        <div><label class="label">Total</label><input class="input" type="number" value="${e.total}" oninput="updateEquip(${e.id},'total',this.value)"></div>
+        <div><label class="label">Distributed</label><input class="input" type="number" value="${e.distributed}" oninput="updateEquip(${e.id},'distributed',this.value)"></div>
+      </div>`);
+  });
+  document.getElementById("tab-Kit").innerHTML = html;
+}
+function toggleAddEquip() { showAddEquip = !showAddEquip; renderKit(); }
+function addEquip() {
+  const item = document.getElementById('eq-item')?.value?.trim();
+  const total = +(document.getElementById('eq-total')?.value||0);
+  if (!item) return;
+  equipment.push({ id:Date.now(), item, total, distributed:+(document.getElementById('eq-dist')?.value||0), condition:document.getElementById('eq-cond')?.value||"Good" });
+  showAddEquip = false; renderKit();
+}
+function updateEquip(id, field, val) {
+  const e = equipment.find(x=>x.id===id);
+  if (e) e[field] = +val;
+}
+
+// ── PROFILE ───────────────────────────────────────────────────────────────
+let editingProfile = false;
+function renderProfile() {
+  const initials = profile.name.split(" ").map(w=>w[0]).join("").slice(0,2);
+  let html = pageHeader("Profile", "Your club details");
+
+  html += `<div class="profile-hero">
+    <div class="profile-avatar">${initials}</div>
+    ${editingProfile ? `
+    <div style="text-align:left">
+      <div class="grid2" style="margin-bottom:10px">
+        ${[["name","Your Name"],["role","Role"],["club","Club"],["season","Season"]].map(([k,lbl])=>`
+          <div><label class="label">${lbl}</label><input class="input" id="pr-${k}" value="${profile[k]||""}"></div>`).join("")}
+      </div>
+      <div style="margin-bottom:14px"><label class="label">Bio</label><textarea class="input" id="pr-bio" style="height:72px;resize:vertical">${profile.bio||""}</textarea></div>
+      <button class="btn btn-primary" onclick="saveProfile()">Save Profile</button>
+    </div>` : `
+    <div class="profile-name">${profile.name}</div>
+    <div class="profile-role">${profile.role}</div>
+    <div class="profile-club">${profile.club} · ${profile.season}</div>
+    <div class="profile-bio">${profile.bio}</div>
+    <button class="btn btn-ghost" style="margin-top:16px" onclick="startEditProfile()">Edit Profile</button>`}
+  </div>`;
+
+  html += `<div class="card">
+    ${sectionLabel("Club Info")}
+    <div class="grid2">
+      <div class="info-box">
+        <div class="info-box-key">Founded</div>
+        <div style="display:flex;align-items:center;gap:8px;margin-top:3px">
+          <input class="input" id="founded-input" type="number" value="${profile.founded||''}" placeholder="Year" style="width:90px;padding:6px 8px;font-size:13px" oninput="profile.founded=this.value">
+        </div>
+      </div>
+      <div class="info-box">
+        <div class="info-box-key">Ground</div>
+        <div style="display:flex;align-items:center;gap:8px;margin-top:3px">
+          <input class="input" id="ground-input" type="text" value="${profile.ground||''}" placeholder="Ground name" style="padding:6px 8px;font-size:13px" oninput="profile.ground=this.value">
+        </div>
+      </div>
+    </div>
+  </div>`;
+
+  document.getElementById("tab-Profile").innerHTML = html;
+  document.getElementById("header-club").textContent = profile.club;
+}
+function startEditProfile() { editingProfile = true; renderProfile(); }
+function saveProfile() {
+  ["name","role","club","season"].forEach(k => {
+    const el = document.getElementById(`pr-${k}`);
+    if (el) profile[k] = el.value;
+  });
+  const bio = document.getElementById('pr-bio');
+  if (bio) profile.bio = bio.value;
+  editingProfile = false;
+  document.getElementById("header-club").textContent = profile.club;
+  renderProfile();
+}
+
+// ── Init ──────────────────────────────────────────────────────────────────
+renderPlayers();
+renderRatings();
+renderFixtures();
+renderPractice();
+renderKit();
+renderProfile();
+
+// ── Google Sheets Sync ────────────────────────────────────────────────────
+// Paste your deployed Apps Script Web App URL below after "SYNC_URL ="
+const SYNC_URL = "https://script.google.com/macros/s/AKfycbxO4hUi491b0jhgPeX9EpHc97dOt8gzvQr0K1BD9pvx52dnaz4guchZ7IUNbsrLEras/exec";
+
+let syncStatus = "idle"; // idle | syncing | success | error
+
+function syncToSheets() {
+  if (!SYNC_URL) {
+    showSyncToast("⚠ No sync URL set. Paste your Apps Script URL into SYNC_URL.", "warn");
+    return;
+  }
+  if (syncStatus === "syncing") return;
+  syncStatus = "syncing";
+  updateSyncBtn();
+
+  // Flatten ratings into player rows
+  const playerRows = players.map(p => {
+    const r = ratings[p.id] || { a:"", b:"" };
+    return { ...p, ratingA: r.a, ratingB: r.b };
+  });
+
+  // Flatten profile into key/value rows
+  const profileRows = Object.entries(profile).map(([field, value]) => ({ field, value }));
+
+  const sheets = [
+    { sheet:"Players",   data: playerRows },
+    { sheet:"Fixtures",  data: matches },
+    { sheet:"Equipment", data: equipment },
+    { sheet:"Polls",     data: polls },
+    { sheet:"Profile",   data: profileRows },
+  ];
+
+  // Send all sheets sequentially
+  const sendNext = (i) => {
+    if (i >= sheets.length) {
+      syncStatus = "success";
+      updateSyncBtn();
+      showSyncToast("✓ Synced to Google Sheets", "success");
+      setTimeout(() => { syncStatus = "idle"; updateSyncBtn(); }, 3000);
+      return;
+    }
+    fetch(SYNC_URL, {
+      method: "POST",
+      mode: "no-cors",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(sheets[i]),
+    })
+    .then(() => sendNext(i + 1))
+    .catch(err => {
+      syncStatus = "error";
+      updateSyncBtn();
+      showSyncToast("✕ Sync failed: " + err.message, "error");
+      setTimeout(() => { syncStatus = "idle"; updateSyncBtn(); }, 4000);
+    });
+  };
+  sendNext(0);
+}
+
+function updateSyncBtn() {
+  const btn = document.getElementById("sync-btn");
+  if (!btn) return;
+  const labels = { idle:"⟳ Sync to Sheets", syncing:"Syncing…", success:"✓ Synced", error:"✕ Failed" };
+  const colors = { idle:"var(--accent)", syncing:"var(--muted)", success:"var(--accentB)", error:"#ff2d55" };
+  btn.textContent = labels[syncStatus];
+  btn.style.color = colors[syncStatus];
+  btn.style.borderColor = colors[syncStatus];
+  btn.style.opacity = syncStatus === "syncing" ? "0.7" : "1";
+  btn.disabled = syncStatus === "syncing";
+}
+
+function showSyncToast(msg, type) {
+  let toast = document.getElementById("sync-toast");
+  if (!toast) {
+    toast = document.createElement("div");
+    toast.id = "sync-toast";
+    toast.style.cssText = "position:fixed;bottom:calc(var(--nav-h) + 12px);left:50%;transform:translateX(-50%);padding:10px 18px;border-radius:4px;font-family:'Courier New',monospace;font-size:12px;font-weight:700;letter-spacing:.06em;z-index:9998;transition:opacity .3s;white-space:nowrap;pointer-events:none";
+    document.body.appendChild(toast);
+  }
+  const styles = {
+    success: "background:#00ff9d22;color:#00ff9d;border:1px solid #00ff9d66;box-shadow:0 0 16px #00ff9d33",
+    warn:    "background:#ffe50022;color:#ffe500;border:1px solid #ffe50066;box-shadow:0 0 16px #ffe50033",
+    error:   "background:#ff2d5522;color:#ff2d55;border:1px solid #ff2d5566;box-shadow:0 0 16px #ff2d5533",
+  };
+  toast.style.cssText += ";" + styles[type];
+  toast.textContent = msg;
+  toast.style.opacity = "1";
+  clearTimeout(toast._timer);
+  toast._timer = setTimeout(() => { toast.style.opacity = "0"; }, 3500);
+}
+
+// Inject sync button into top bar after render
+(function injectSyncBtn() {
+  const topbar = document.getElementById("topbar");
+  if (!topbar) return;
+  const btn = document.createElement("button");
+  btn.id = "sync-btn";
+  btn.textContent = "⟳ Sync to Sheets";
+  btn.onclick = syncToSheets;
+  btn.style.cssText = "margin-left:auto;background:transparent;border:1px solid var(--accent);color:var(--accent);font-family:'Courier New',monospace;font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;padding:6px 12px;border-radius:2px;cursor:pointer;box-shadow:var(--glow);transition:all .2s;flex-shrink:0";
+  // Insert before the status dot
+  const dot = topbar.querySelector(".status-dot");
+  topbar.insertBefore(btn, dot);
+})();
+
+</script>
+</body>
+</html>
