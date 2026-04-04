@@ -380,22 +380,8 @@ const COMPETITIONS = ["League","Cup","Friendly","Knockout"];
 const CONDITIONS = ["Excellent","Good","Fair","Poor"];
 const TEAMS = ["Team 1","Team 2","Team 3","Team 1-W"];
 
-let players = [
-  { id:1, name:"Ravi Sharma",    number:1,  role:"Batsman",       status:"Available", batterType:"Right-hand", bowlerType:"None",              carPlate:"RVS 001", feesPaid:true,  team:"Mens", gender:"Male"   },
-  { id:2, name:"James Whittle",  number:5,  role:"All-rounder",   status:"Available", batterType:"Right-hand", bowlerType:"Pace – Medium Fast", carPlate:"JWH 205", feesPaid:true,  team:"Mens", gender:"Male"   },
-  { id:3, name:"Amir Khan",      number:11, role:"Bowler",        status:"Injured",   batterType:"Left-hand",  bowlerType:"Pace – Fast",        carPlate:"AMK 311", feesPaid:false, team:"Mens", gender:"Male"   },
-  { id:4, name:"Tom Ellis",      number:2,  role:"Wicket-keeper", status:"Available", batterType:"Right-hand", bowlerType:"None",              carPlate:"TEL 402", feesPaid:true,  team:"Mens", gender:"Male"   },
-  { id:5, name:"Priya Sharma",   number:3,  role:"Batsman",       status:"Available", batterType:"Right-hand", bowlerType:"None",              carPlate:"PRS 301", feesPaid:true,  team:"Womens", gender:"Female" },
-  { id:6, name:"Sophie Lane",    number:7,  role:"All-rounder",   status:"Available", batterType:"Left-hand",  bowlerType:"Spin – Off-spin",   carPlate:"SLN 702", feesPaid:true,  team:"Womens", gender:"Female" },
-  { id:7, name:"Kezia Okafor",   number:11, role:"Bowler",        status:"Injured",   batterType:"Right-hand", bowlerType:"Pace – Medium",     carPlate:"KOK 114", feesPaid:false, team:"Womens", gender:"Female" },
-];
-let matches = [
-  { id:1, opponent:"Thornfield CC", date:"2026-04-12", time:"10:30", venue:"Home",    result:null,           competition:"League", format:"T20",     team:"Team 1"   },
-  { id:2, opponent:"Riverside XI",  date:"2026-04-19", time:"11:00", venue:"Away",    result:null,           competition:"Cup",    format:"50-over", team:"Team 1-W" },
-  { id:3, opponent:"Oakhill CC",    date:"2026-03-29", time:"10:00", venue:"Home",    result:"W by 6 wkts",  competition:"League", format:"T20",     team:"Team 1"   },
-  { id:4, opponent:"Greendale CC",  date:"2026-03-22", time:"11:00", venue:"Away",    result:"L by 34 runs", competition:"League", format:"T20",     team:"Team 2"   },
-  { id:5, opponent:"Millbrook CC",  date:"2026-04-26", time:"10:00", venue:"Neutral", result:null,           competition:"Cup",    format:"50-over", team:"Team 1-W" },
-];
+let players = [];
+let matches = [];
 let equipment = [
   { id:1, item:"Cricket Bat (Match)",     total:15, distributed:11, condition:"Good"      },
   { id:2, item:"Batting Helmet",          total:12, distributed:10, condition:"Good"      },
@@ -406,12 +392,13 @@ let equipment = [
   { id:7, item:"Wicket-keeper Gloves",    total:4,  distributed:2,  condition:"Good"      },
   { id:8, item:"Club Playing Kit",        total:18, distributed:15, condition:"Excellent" },
 ];
-let ratings = { 1:{a:3,b:2}, 2:{a:4,b:3}, 3:{a:2,b:4}, 4:{a:3,b:3}, 5:{a:2,b:2}, 6:{a:4,b:1}, 7:{a:3,b:3} };
-let polls = [{ id:1, title:"Tuesday Evening Nets", date:"2026-04-08", time:"18:30", location:"Home Ground", votes:["Ravi Sharma","James Whittle","Sophie Lane"], open:true, proposer:"Alex Thornton" }];
-let profile = { name:"Alex Thornton", role:"Club Captain", club:"Athlone CC", season:"2025/26", bio:"Proud to lead this club. Focused on developing young talent and bringing home the league trophy.", email:"alex.thornton@athlonecc.co.uk", founded:"1987", ground:"Home Ground" };
+let ratings = {};
+let polls = [];
+let profile = { name:"", role:"", club:"Athlone CC", season:"", bio:"", founded:"1975", ground:"Doon Cricket Ground" };
 
 let activeTab = "Players";
 let playerTeamTab = "Mens";
+let playerSearch = "";
 let playerMode = null; // null | "add" | player-id
 let openCards = new Set();
 let showAddFixture = false;
@@ -485,17 +472,32 @@ function render() { window[`render${activeTab}`](); }
 
 // ── PLAYERS ───────────────────────────────────────────────────────────────
 function renderPlayers() {
-  const visible = players.filter(p => (p.team || "Mens") === playerTeamTab);
-  const unpaid = visible.filter(p => !p.feesPaid).length;
-  let html = pageHeader("Squad", `${visible.length} players · ${unpaid} fee${unpaid!==1?"s":""} outstanding`,
+  // Remember focus state before re-rendering
+  const searchFocused = document.activeElement && document.activeElement.id === 'player-search-input';
+  const cursorPos = searchFocused ? document.activeElement.selectionStart : null;
+  const query = playerSearch.toLowerCase().trim();
+  const teamFiltered = players.filter(p => (p.team || "Mens") === playerTeamTab);
+  const visible = query
+    ? teamFiltered.filter(p => p.name.toLowerCase().includes(query) || p.role.toLowerCase().includes(query))
+    : teamFiltered;
+  const unpaid = teamFiltered.filter(p => !p.feesPaid).length;
+  let html = pageHeader("Squad", `${teamFiltered.length} players · ${unpaid} fee${unpaid!==1?"s":""} outstanding`,
     `<button class="btn btn-primary" onclick="togglePlayerMode('add')">+ Add</button>`);
 
   // Team tabs
-  html += `<div class="flex-row" style="margin-bottom:18px">`;
+  html += `<div class="flex-row" style="margin-bottom:12px">`;
   ["Mens","Womens"].forEach(t => {
     html += `<button class="toggle-btn${t===playerTeamTab?" active-cyan":""}" onclick="setPlayerTeamTab('${t}')">${t}</button>`;
   });
   html += `</div>`;
+
+  // Search bar
+  html += `<div style="position:relative;margin-bottom:16px">
+    <input class="input" id="player-search-input" placeholder="Search by name or role…" value="${playerSearch.replace(/"/g,'&quot;')}"
+      oninput="playerSearch=this.value;renderPlayers()" style="padding-left:36px">
+    <span style="position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--muted);font-size:14px;pointer-events:none">⌕</span>
+    ${playerSearch ? `<button onclick="playerSearch='';renderPlayers()" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--muted);font-size:14px">✕</button>` : ""}
+  </div>`;
 
   // Warning
   if (unpaid > 0) html += `<div class="warn-strip"><span class="warn-text">⚠ ${unpaid} player${unpaid!==1?"s":""} yet to pay fees</span></div>`;
@@ -513,7 +515,9 @@ function renderPlayers() {
 
   // Player list
   if (visible.length === 0 && !playerMode) {
-    html += `<div class="empty">No ${playerTeamTab} players yet. Tap <strong>Add</strong> to register one.</div>`;
+    html += query
+      ? `<div class="empty">No players match "<strong>${playerSearch}</strong>".</div>`
+      : `<div class="empty">No ${playerTeamTab} players yet. Tap <strong>Add</strong> to register one.</div>`;
   }
 
   visible.forEach((p, i) => {
@@ -522,9 +526,16 @@ function renderPlayers() {
     const r = ratings[p.id] || {a:"",b:""};
     html += `<div class="player-card">
       <div class="player-card-header" onclick="toggleCard(${p.id})">
-        <div class="avatar" style="background:${c}22;border:1px solid ${c};color:${c};box-shadow:0 0 10px ${c}44;width:40px;height:40px;border-radius:4px;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:15px;font-family:'Courier New',monospace;flex-shrink:0">${p.number}</div>
+        <div style="flex-shrink:0;width:40px;height:40px">
+          <div class="avatar" style="background:${c}22;border:1px solid ${c};color:${c};box-shadow:0 0 10px ${c}44;width:40px;height:40px;border-radius:4px;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:15px;font-family:'Courier New',monospace">${p.number}</div>
+        </div>
         <div style="flex:1;min-width:0">
-          <div style="font-weight:700;font-size:14px;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${p.name}</div>
+          <div style="display:flex;align-items:center;gap:8px">
+            <div style="font-weight:700;font-size:14px;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${p.name}</div>
+            <button onclick="event.stopPropagation();deletePlayer(${p.id})"
+              style="background:none;border:none;cursor:pointer;color:var(--muted);font-size:13px;padding:2px 5px;border-radius:4px;transition:color .2s;flex-shrink:0;line-height:1"
+              onmouseover="this.style.color='#ff2d55'" onmouseout="this.style.color='var(--muted)'">✕</button>
+          </div>
           <div style="font-size:12px;color:var(--muted)">${p.role}</div>
         </div>
         ${pill(STATUS_COLORS[p.status] || "#00ff9d", p.status)}
@@ -549,13 +560,21 @@ function renderPlayers() {
         </div>
         <div style="display:flex;gap:8px;margin-top:14px">
           <button class="btn btn-primary btn-small" onclick="editPlayer(${p.id})">✎ Edit</button>
-          <button class="btn btn-danger btn-small" onclick="deletePlayer(${p.id})">✕ Delete</button>
         </div>
       </div>
     </div>`;
   });
 
   document.getElementById("tab-Players").innerHTML = html;
+
+  // Restore focus and cursor position to search input if it was focused
+  if (searchFocused) {
+    const input = document.getElementById('player-search-input');
+    if (input) {
+      input.focus();
+      if (cursorPos !== null) input.setSelectionRange(cursorPos, cursorPos);
+    }
+  }
 }
 
 function infoRow(label, value) {
@@ -640,7 +659,7 @@ function toggleCard(id) {
   if (openCards.has(id)) openCards.delete(id); else openCards.add(id);
   renderPlayers();
 }
-function setPlayerTeamTab(t) { playerTeamTab = t; playerMode = null; renderPlayers(); }
+function setPlayerTeamTab(t) { playerTeamTab = t; playerSearch = ""; playerMode = null; renderPlayers(); }
 function togglePlayerMode(m) { playerMode = playerMode === m ? null : m; renderPlayers(); }
 function editPlayer(id) { playerMode = id; openCards.delete(id); renderPlayers(); }
 function cancelPlayer() { playerMode = null; renderPlayers(); }
@@ -679,27 +698,81 @@ function savePlayer(editId) {
 }
 
 // ── RATINGS ───────────────────────────────────────────────────────────────
+// ── RATINGS ───────────────────────────────────────────────────────────────
+const RATING_CATS = ["1:1","1:2","2:1","2:2"];
+// playerCategory[playerId] = "1:1" | "1:2" | "2:1" | "2:2" | null
+let playerCategory = {};
+
 function renderRatings() {
-  let html = pageHeader("Ratings", "Set each player's rating");
-  players.forEach((p, i) => {
-    const r = ratings[p.id] || {a:"",b:""};
-    const c = AVATAR_COLORS[i % AVATAR_COLORS.length];
-    html += card(`
-      <div style="display:flex;align-items:center;gap:14px">
-        <div class="avatar" style="background:${c}22;border:1px solid ${c};color:${c};box-shadow:0 0 8px ${c}44;width:38px;height:38px;border-radius:4px;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:15px;font-family:'Courier New',monospace;flex-shrink:0">${p.number}</div>
+  let html = pageHeader("Ratings", "Assign players to a rating category");
+
+  // Unassigned players
+  const unassigned = players.filter(p => !playerCategory[p.id]);
+
+  if (unassigned.length > 0) {
+    html += `<div style="margin-bottom:20px">
+      <div class="section-label">// Unassigned</div>`;
+    unassigned.forEach((p, i) => {
+      const c = AVATAR_COLORS[players.indexOf(p) % AVATAR_COLORS.length];
+      html += `<div style="display:flex;align-items:center;gap:12px;background:linear-gradient(135deg,#091a28,#060f18);border:1px solid #00e5ff22;border-radius:4px;padding:12px 14px;margin-bottom:8px">
+        <div style="width:36px;height:36px;border-radius:4px;flex-shrink:0;background:${c}22;border:1px solid ${c};color:${c};display:flex;align-items:center;justify-content:center;font-weight:900;font-size:14px;font-family:'Courier New',monospace">${p.number}</div>
         <div style="flex:1">
-          <div style="font-weight:700;color:var(--text)">${p.name}</div>
-          <div style="font-size:12px;color:var(--muted)">${p.role}</div>
+          <div style="font-weight:700;color:var(--text);font-size:13px">${p.name}</div>
+          <div style="font-size:11px;color:var(--muted)">${p.role}</div>
         </div>
-        <div style="display:flex;align-items:center;gap:6px">
-          <input class="input ratio-input" type="number" min="0" max="99" value="${r.a}" oninput="setRating(${p.id},'a',this.value)">
-          <span class="ratio-colon">:</span>
-          <input class="input ratio-input" type="number" min="0" max="99" value="${r.b}" oninput="setRating(${p.id},'b',this.value)">
-        </div>
-      </div>`);
+        <select onchange="assignCategory(${p.id},this.value)" style="background:#071218;border:1px solid #00e5ff44;border-radius:4px;padding:6px 10px;color:var(--muted);font-family:'Courier New',monospace;font-size:12px;outline:none;cursor:pointer">
+          <option value="">Assign…</option>
+          ${RATING_CATS.map(cat => `<option value="${cat}">${cat}</option>`).join("")}
+        </select>
+      </div>`;
+    });
+    html += `</div>`;
+  }
+
+  // Category sections
+  RATING_CATS.forEach(cat => {
+    const catPlayers = players.filter(p => playerCategory[p.id] === cat);
+    const catColor = cat==="1:1"?"#00e5ff":cat==="1:2"?"#00ff9d":cat==="2:1"?"#bf3aff":"#ff6b35";
+    html += `<div style="margin-bottom:20px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+        <div style="font-size:18px;font-weight:900;color:${catColor};font-family:'Courier New',monospace;text-shadow:0 0 12px ${catColor}66;letter-spacing:2px">${cat}</div>
+        <div style="font-size:11px;color:var(--muted);font-family:'Courier New',monospace">${catPlayers.length} player${catPlayers.length!==1?"s":""}</div>
+      </div>
+      <div style="border-left:2px solid ${catColor}44;padding-left:12px;min-height:40px">`;
+
+    if (catPlayers.length === 0) {
+      html += `<div style="font-size:12px;color:var(--muted);padding:10px 0;font-style:italic">No players assigned yet</div>`;
+    } else {
+      catPlayers.forEach(p => {
+        const c = AVATAR_COLORS[players.indexOf(p) % AVATAR_COLORS.length];
+        html += `<div style="display:flex;align-items:center;gap:12px;background:linear-gradient(135deg,#091a28,#060f18);border:1px solid ${catColor}33;border-radius:4px;padding:11px 13px;margin-bottom:8px">
+          <div style="width:36px;height:36px;border-radius:4px;flex-shrink:0;background:${c}22;border:1px solid ${c};color:${c};display:flex;align-items:center;justify-content:center;font-weight:900;font-size:14px;font-family:'Courier New',monospace">${p.number}</div>
+          <div style="flex:1">
+            <div style="font-weight:700;color:var(--text);font-size:13px">${p.name}</div>
+            <div style="font-size:11px;color:var(--muted)">${p.role}</div>
+          </div>
+          <select onchange="assignCategory(${p.id},this.value)" style="background:#071218;border:1px solid ${catColor}44;border-radius:4px;padding:6px 10px;color:${catColor};font-family:'Courier New',monospace;font-size:12px;outline:none;cursor:pointer">
+            ${RATING_CATS.map(c2 => `<option value="${c2}"${c2===cat?" selected":""}>${c2}</option>`).join("")}
+            <option value="">Remove</option>
+          </select>
+        </div>`;
+      });
+    }
+    html += `</div></div>`;
   });
+
   document.getElementById("tab-Ratings").innerHTML = html;
 }
+
+function assignCategory(playerId, cat) {
+  if (!cat) {
+    delete playerCategory[playerId];
+  } else {
+    playerCategory[playerId] = cat;
+  }
+  renderRatings();
+}
+
 function setRating(id, key, val) {
   if (!ratings[id]) ratings[id] = {a:"",b:""};
   ratings[id][key] = val === "" ? "" : +val;
@@ -926,7 +999,10 @@ function renderKit() {
     html += card(`
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
         <div style="font-weight:700;color:var(--text)">${e.item}</div>
-        ${pill(cc, e.condition)}
+        <div style="display:flex;align-items:center;gap:8px">
+          ${pill(cc, e.condition)}
+          <button onclick="deleteEquip(${e.id})" style="background:none;border:none;cursor:pointer;color:var(--muted);font-size:14px;padding:2px 6px;border-radius:4px;transition:color .2s" onmouseover="this.style.color='#ff2d55'" onmouseout="this.style.color='var(--muted)'">✕</button>
+        </div>
       </div>
       <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
         <div style="flex:1">${progressBar(pct, cc)}</div>
@@ -950,6 +1026,10 @@ function addEquip() {
 function updateEquip(id, field, val) {
   const e = equipment.find(x=>x.id===id);
   if (e) e[field] = +val;
+}
+function deleteEquip(id) {
+  equipment = equipment.filter(e => e.id !== id);
+  renderKit();
 }
 
 // ── PROFILE ───────────────────────────────────────────────────────────────
@@ -981,15 +1061,11 @@ function renderProfile() {
     <div class="grid2">
       <div class="info-box">
         <div class="info-box-key">Founded</div>
-        <div style="display:flex;align-items:center;gap:8px;margin-top:3px">
-          <input class="input" id="founded-input" type="number" value="${profile.founded||''}" placeholder="Year" style="width:90px;padding:6px 8px;font-size:13px" oninput="profile.founded=this.value">
-        </div>
+        <div class="info-box-val">1975</div>
       </div>
       <div class="info-box">
         <div class="info-box-key">Ground</div>
-        <div style="display:flex;align-items:center;gap:8px;margin-top:3px">
-          <input class="input" id="ground-input" type="text" value="${profile.ground||''}" placeholder="Ground name" style="padding:6px 8px;font-size:13px" oninput="profile.ground=this.value">
-        </div>
+        <div class="info-box-val">Doon Cricket Ground</div>
       </div>
     </div>
   </div>`;
@@ -1020,7 +1096,7 @@ renderProfile();
 
 // ── Google Sheets Sync ────────────────────────────────────────────────────
 // Paste your deployed Apps Script Web App URL below after "SYNC_URL ="
-const SYNC_URL = "https://script.google.com/macros/s/AKfycbxO4hUi491b0jhgPeX9EpHc97dOt8gzvQr0K1BD9pvx52dnaz4guchZ7IUNbsrLEras/exec";
+const SYNC_URL = "";
 
 let syncStatus = "idle"; // idle | syncing | success | error
 
@@ -1042,6 +1118,8 @@ function syncToSheets() {
   // Flatten profile into key/value rows
   const profileRows = Object.entries(profile).map(([field, value]) => ({ field, value }));
 
+  // Each sync does a full clear-and-rewrite, so any deleted entries
+  // (players, fixtures, equipment, polls) are automatically removed from the sheet.
   const sheets = [
     { sheet:"Players",   data: playerRows },
     { sheet:"Fixtures",  data: matches },
