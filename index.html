@@ -399,6 +399,8 @@ let profile = { name:"", role:"", club:"Athlone CC", season:"", bio:"", founded:
 let activeTab = "Players";
 let playerTeamTab = "Mens";
 let playerSearch = "";
+let selectingForMatch = null; // match id when in selection mode
+let matchPlayers = {}; // matchId -> [playerId, ...]
 let playerMode = null; // null | "add" | player-id
 let openCards = new Set();
 let showAddFixture = false;
@@ -481,8 +483,26 @@ function renderPlayers() {
     ? teamFiltered.filter(p => p.name.toLowerCase().includes(query) || p.role.toLowerCase().includes(query))
     : teamFiltered;
   const unpaid = teamFiltered.filter(p => !p.feesPaid).length;
-  let html = pageHeader("Squad", `${teamFiltered.length} players · ${unpaid} fee${unpaid!==1?"s":""} outstanding`,
-    `<button class="btn btn-primary" onclick="togglePlayerMode('add')">+ Add</button>`);
+
+  // Selection mode
+  const match = selectingForMatch ? matches.find(m => m.id === selectingForMatch) : null;
+  let html = "";
+  if (match) {
+    const selected = matchPlayers[match.id] || [];
+    html += `<div style="background:#00ff9d18;border:1px solid #00ff9d55;border-radius:4px;padding:14px 16px;margin-bottom:18px">
+      <div style="font-size:10px;color:var(--accent);font-family:'Courier New',monospace;letter-spacing:.14em;text-transform:uppercase;margin-bottom:4px">// Selecting players for</div>
+      <div style="font-weight:800;font-size:15px;color:var(--text)">vs ${match.opponent}</div>
+      <div style="font-size:12px;color:var(--muted);margin-top:2px">${formatDate(match.date)} · ${match.team || ""}</div>
+      <div style="font-size:12px;color:var(--accent);margin-top:6px">${selected.length} player${selected.length!==1?"s":""} selected — tap a player to toggle</div>
+      <div style="display:flex;gap:8px;margin-top:12px">
+        <button class="btn btn-primary btn-small" onclick="doneSelectingPlayers()">✓ Done</button>
+        <button class="btn btn-ghost btn-small" onclick="cancelSelectingPlayers()">Cancel</button>
+      </div>
+    </div>`;
+  } else {
+    html += pageHeader("Squad", `${teamFiltered.length} players · ${unpaid} fee${unpaid!==1?"s":""} outstanding`,
+      `<button class="btn btn-primary" onclick="togglePlayerMode('add')">+ Add</button>`);
+  }
 
   // Team tabs
   html += `<div class="flex-row" style="margin-bottom:12px">`;
@@ -524,8 +544,13 @@ function renderPlayers() {
     const isOpen = openCards.has(p.id);
     const c = AVATAR_COLORS[i % AVATAR_COLORS.length];
     const r = ratings[p.id] || {a:"",b:""};
-    html += `<div class="player-card">
-      <div class="player-card-header" onclick="toggleCard(${p.id})">
+    const isSelected = selectingForMatch && (matchPlayers[selectingForMatch]||[]).includes(p.id);
+    const cardBorder = isSelected ? "#00ff9d88" : "#00ff9d22";
+    const cardBg = isSelected ? "linear-gradient(135deg,#00ff9d18,#060f18)" : "linear-gradient(135deg,#091a28,#060f18)";
+    const clickAction = selectingForMatch ? `togglePlayerForMatch(${p.id})` : `toggleCard(${p.id})`;
+    html += `<div class="player-card" style="border-color:${cardBorder};background:${cardBg}">
+      <div class="player-card-header" onclick="${clickAction}">
+        ${isSelected ? `<div style="position:absolute;top:6px;right:8px;font-size:11px;color:#00ff9d;font-family:'Courier New',monospace;font-weight:900">✓</div>` : ""}
         <div style="flex-shrink:0;width:40px;height:40px">
           <div class="avatar" style="background:${c}22;border:1px solid ${c};color:${c};box-shadow:0 0 10px ${c}44;width:40px;height:40px;border-radius:4px;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:15px;font-family:'Courier New',monospace">${p.number}</div>
         </div>
@@ -659,6 +684,27 @@ function toggleCard(id) {
   if (openCards.has(id)) openCards.delete(id); else openCards.add(id);
   renderPlayers();
 }
+function openPlayerSelection(matchId) {
+  selectingForMatch = matchId;
+  playerMode = null;
+  switchTab('Players');
+}
+function togglePlayerForMatch(playerId) {
+  if (!selectingForMatch) return;
+  if (!matchPlayers[selectingForMatch]) matchPlayers[selectingForMatch] = [];
+  const idx = matchPlayers[selectingForMatch].indexOf(playerId);
+  if (idx > -1) matchPlayers[selectingForMatch].splice(idx, 1);
+  else matchPlayers[selectingForMatch].push(playerId);
+  renderPlayers();
+}
+function doneSelectingPlayers() {
+  selectingForMatch = null;
+  switchTab('Fixtures');
+}
+function cancelSelectingPlayers() {
+  selectingForMatch = null;
+  renderPlayers();
+}
 function setPlayerTeamTab(t) { playerTeamTab = t; playerSearch = ""; playerMode = null; renderPlayers(); }
 function togglePlayerMode(m) { playerMode = playerMode === m ? null : m; renderPlayers(); }
 function editPlayer(id) { playerMode = id; openCards.delete(id); renderPlayers(); }
@@ -780,7 +826,11 @@ function setRating(id, key, val) {
 
 // ── FIXTURES ──────────────────────────────────────────────────────────────
 function renderFixtures() {
-  const allVisible = matches.filter(m => (m.team || "Team 1") === fixtureTeamTab);
+  const allVisible = matches.filter(m => {
+    if (fixtureTeamTab === "Friendlies") return m.team === "Friendly";
+    if (fixtureTeamTab === "Friendlies-W") return m.team === "Friendly-W";
+    return (m.team || "Team 1") === fixtureTeamTab;
+  });
   const upcoming = allVisible.filter(m=>!m.result).sort((a,b)=>a.date.localeCompare(b.date));
   const past = allVisible.filter(m=>m.result).sort((a,b)=>b.date.localeCompare(a.date));
   let html = pageHeader("Fixtures", `${upcoming.length} upcoming · ${past.length} played`,
@@ -788,8 +838,9 @@ function renderFixtures() {
 
   // Team tabs
   html += `<div style="display:flex;gap:6px;margin-bottom:18px;flex-wrap:wrap">`;
-  ["Team 1","Team 2","Team 3","Team 1-W"].forEach(t => {
-    html += `<button class="toggle-btn${t===fixtureTeamTab?" active-cyan":""}" style="flex:unset;padding:8px 12px" onclick="setFixtureTeamTab('${t}')">${t}</button>`;
+  ["Team 1","Team 2","Team 3","Team 1-W","Friendlies","Friendlies-W"].forEach(t => {
+    const active = t === fixtureTeamTab;
+    html += `<button onclick="setFixtureTeamTab('${t}')" style="padding:8px 14px;border-radius:2px;border:1px solid ${active?"var(--accent)":"#0a3d2a88"};background:${active?"#00ff9d22":"transparent"};color:${active?"var(--accent)":"var(--muted)"};font-family:'Courier New',monospace;font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;cursor:pointer;transition:all .2s;box-shadow:${active?"var(--glow)":"none"};white-space:nowrap">${t}</button>`;
   });
   html += `</div>`;
 
@@ -798,8 +849,19 @@ function renderFixtures() {
       <div class="form-title">New Fixture</div>
       <div style="margin-bottom:10px"><label class="label">Opponent Club</label><input class="input" id="fx-opp" placeholder="e.g. Thornfield CC"></div>
       <div style="margin-bottom:10px">
+        <label class="label">Competition</label>
+        <select class="input" id="fx-comp" onchange="toggleFxTeamField(this.value)">${selectOpts(COMPETITIONS,"League")}</select>
+      </div>
+      <div id="fx-team-row" style="margin-bottom:10px">
         <label class="label">Team</label>
         <select class="input" id="fx-team">${selectOpts(TEAMS, "Team 1")}</select>
+      </div>
+      <div id="fx-friendly-gender-row" style="margin-bottom:10px;display:none">
+        <label class="label">Friendly Type</label>
+        <div class="flex-row">
+          <button class="toggle-btn active-cyan" id="fx-friendly-mens" onclick="setFriendlyType(this,'mens')">Men's</button>
+          <button class="toggle-btn" id="fx-friendly-womens" onclick="setFriendlyType(this,'womens')">Women's</button>
+        </div>
       </div>
       <div class="grid2" style="margin-bottom:10px">
         <div><label class="label">Date</label><input class="input" id="fx-date" type="date"></div>
@@ -807,7 +869,6 @@ function renderFixtures() {
         <div><label class="label">Format</label><select class="input" id="fx-format">${selectOpts(FORMATS,"T20")}</select></div>
         <div><label class="label">Venue</label><select class="input" id="fx-venue">${selectOpts(["Home","Away","Neutral"],"Home")}</select></div>
       </div>
-      <div style="margin-bottom:14px"><label class="label">Competition</label><select class="input" id="fx-comp">${selectOpts(COMPETITIONS,"League")}</select></div>
       <div class="flex-row">
         <button class="btn btn-primary" onclick="addFixture()">Add Fixture</button>
         <button class="btn btn-ghost" onclick="toggleAddFixture()">Cancel</button>
@@ -828,6 +889,12 @@ function renderFixtures() {
   }
   document.getElementById("tab-Fixtures").innerHTML = html;
 }
+function toggleFxTeamField(comp) {
+  const row = document.getElementById('fx-team-row');
+  const wRow = document.getElementById('fx-friendly-gender-row');
+  if (row) row.style.display = comp === "Friendly" ? "none" : "block";
+  if (wRow) wRow.style.display = comp === "Friendly" ? "block" : "none";
+}
 function setFixtureTeamTab(t) { fixtureTeamTab = t; showAddFixture = false; renderFixtures(); }
 function fxSetTeam(btn, team) {
   btn.closest('.flex-row').querySelectorAll('.toggle-btn').forEach(b => { b.classList.remove('active-cyan'); });
@@ -835,30 +902,59 @@ function fxSetTeam(btn, team) {
 }
 function matchRow(m) {
   const rc = m.result ? resultColor(m.result) : null;
-  return `<div class="match-row">
-    <div style="flex:1;min-width:0">
-      <div style="font-weight:800;color:var(--text);font-size:14px">vs ${m.opponent}</div>
-      <div style="font-size:11px;color:var(--accent);font-family:'Courier New',monospace;margin-top:2px;letter-spacing:.06em">${m.team || "Team 1"}</div>
-      <div style="font-size:12px;color:var(--muted);margin-top:2px">${formatDate(m.date)}${m.time?" · "+m.time:""}</div>
-      ${m.result ? `<div style="font-size:12px;font-weight:700;color:${rc};margin-top:3px">${m.result}</div>` : ""}
+  const squad = matchPlayers[m.id] || [];
+  return `<div class="match-row" style="flex-direction:column;align-items:stretch;gap:10px">
+    <div style="display:flex;align-items:center;justify-content:space-between">
+      <div style="flex:1;min-width:0">
+        <div style="font-weight:800;color:var(--text);font-size:14px">vs ${m.opponent}</div>
+        <div style="font-size:11px;color:var(--accent);font-family:'Courier New',monospace;margin-top:2px;letter-spacing:.06em">${m.team || "Team 1"}</div>
+        <div style="font-size:12px;color:var(--muted);margin-top:2px">${formatDate(m.date)}${m.time?" · "+m.time:""}</div>
+        ${m.result ? `<div style="font-size:12px;font-weight:700;color:${rc};margin-top:3px">${m.result}</div>` : ""}
+      </div>
+      <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;justify-content:flex-end;margin-left:8px">
+        ${pill("var(--muted)", m.format)}
+        ${pill("var(--muted)", m.competition)}
+        ${!m.result ? pill(m.venue==="Home"?"var(--accent)":"#ff6b35", m.venue) : ""}
+        ${m.result ? pill(rc, isWin(m.result)?"W":isLoss(m.result)?"L":"D") : ""}
+        <button onclick="deleteFixture(${m.id})" style="background:none;border:none;cursor:pointer;color:var(--muted);font-size:14px;padding:2px 6px;border-radius:4px;line-height:1;transition:color .2s" onmouseover="this.style.color='#ff2d55'" onmouseout="this.style.color='var(--muted)'">✕</button>
+      </div>
     </div>
-    <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;justify-content:flex-end;margin-left:8px">
-      ${pill("var(--muted)", m.format)}
-      ${pill("var(--muted)", m.competition)}
-      ${!m.result ? pill(m.venue==="Home"?"var(--accent)":"#ff6b35", m.venue) : ""}
-      ${m.result ? pill(rc, isWin(m.result)?"W":isLoss(m.result)?"L":"D") : ""}
-      <button onclick="deleteFixture(${m.id})" style="background:none;border:none;cursor:pointer;color:var(--muted);font-size:14px;padding:2px 6px;border-radius:4px;line-height:1;transition:color .2s" onmouseover="this.style.color='#ff2d55'" onmouseout="this.style.color='var(--muted)'">✕</button>
+    <div style="display:flex;align-items:center;justify-content:space-between;padding-top:8px;border-top:1px solid #00ff9d18">
+      <div style="font-size:11px;color:var(--muted);font-family:'Courier New',monospace">
+        ${squad.length > 0 ? `${squad.length} player${squad.length!==1?"s":""} selected` : "No players selected"}
+      </div>
+      <button class="btn btn-primary btn-small" onclick="openPlayerSelection(${m.id})">+ Select Players</button>
     </div>
+    ${squad.length > 0 ? `
+    <div style="display:flex;flex-wrap:wrap;gap:6px;padding-top:4px">
+      ${squad.map(pid => {
+        const pl = players.find(x=>x.id===pid);
+        return pl ? `<span style="background:#00ff9d18;border:1px solid #00ff9d44;border-radius:2px;padding:3px 8px;font-size:11px;color:var(--accent);font-family:'Courier New',monospace">${pl.name}</span>` : "";
+      }).join("")}
+    </div>` : ""}
   </div>`;
 }
 function deleteFixture(id) { matches = matches.filter(m => m.id !== id); renderFixtures(); }
 function toggleAddFixture() { showAddFixture = !showAddFixture; renderFixtures(); }
+function setFriendlyType(btn, type) {
+  document.getElementById('fx-friendly-mens').className = 'toggle-btn' + (type==='mens'?' active-cyan':'');
+  document.getElementById('fx-friendly-womens').className = 'toggle-btn' + (type==='womens'?' active-cyan':'');
+  btn.dataset.type = type;
+}
 function addFixture() {
   const opp = document.getElementById('fx-opp')?.value?.trim();
   const date = document.getElementById('fx-date')?.value;
   if (!opp || !date) return;
-  const team = document.getElementById('fx-team')?.value || "Team 1";
-  matches.push({ id:Date.now(), opponent:opp, date, time:document.getElementById('fx-time')?.value||"", venue:document.getElementById('fx-venue')?.value, result:null, competition:document.getElementById('fx-comp')?.value, format:document.getElementById('fx-format')?.value, team });
+  const comp = document.getElementById('fx-comp')?.value || "League";
+  let team;
+  if (comp === "Friendly") {
+    const womensBtn = document.getElementById('fx-friendly-womens');
+    const isWomens = womensBtn && womensBtn.classList.contains('active-cyan');
+    team = isWomens ? "Friendly-W" : "Friendly";
+  } else {
+    team = document.getElementById('fx-team')?.value || "Team 1";
+  }
+  matches.push({ id:Date.now(), opponent:opp, date, time:document.getElementById('fx-time')?.value||"", venue:document.getElementById('fx-venue')?.value, result:null, competition:comp, format:document.getElementById('fx-format')?.value, team });
   showAddFixture = false;
   renderFixtures();
 }
