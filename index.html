@@ -7,17 +7,17 @@
 <style>
   :root {
     --bg:#050d12; --surface:#091620; --surfaceB:#060f18;
-    --border:#0e3a52; --accent:#00e5ff; --accentB:#00ff9d;
-    --text:#d4f5ff; --muted:#4a8fa8; --danger:#ff2d55;
+    --border:#0a3d2a; --accent:#00ff9d; --accentB:#00e5b0;
+    --text:#00ff9d; --muted:#2a7a54; --danger:#ff2d55;
     --nav-h:68px;
-    --glow:0 0 16px #00e5ff55; --glowG:0 0 16px #00ff9d55;
+    --glow:0 0 16px #00ff9d55; --glowG:0 0 16px #00e5b055;
   }
   *, *::before, *::after { box-sizing:border-box; margin:0; padding:0; }
   html, body { height:100%; overflow:hidden; }
   body {
     background:var(--bg);
     background-image:
-      radial-gradient(ellipse at 20% 0%, #00e5ff0a 0%, transparent 60%),
+      radial-gradient(ellipse at 20% 0%, #00ff9d0a 0%, transparent 60%),
       radial-gradient(ellipse at 80% 100%, #00ff9d08 0%, transparent 60%);
     color:var(--text);
     font-family:'Courier New', monospace;
@@ -32,24 +32,24 @@
   /* ── Scrollbar ── */
   ::-webkit-scrollbar { width:4px; }
   ::-webkit-scrollbar-track { background:#050d12; }
-  ::-webkit-scrollbar-thumb { background:#00e5ff33; border-radius:2px; }
+  ::-webkit-scrollbar-thumb { background:#00ff9d33; border-radius:2px; }
 
   /* ── Top bar ── */
   #topbar {
-    background:#060e16; border-bottom:1px solid #00e5ff44;
+    background:#060e16; border-bottom:1px solid #00ff9d44;
     padding:12px 20px; display:flex; align-items:center; gap:14;
     flex-shrink:0; box-shadow:var(--glow);
   }
   #topbar .logo {
     width:38px; height:38px; border-radius:4px;
-    background:#00e5ff18; border:1px solid var(--accent);
+    background:#00ff9d18; border:1px solid var(--accent);
     display:flex; align-items:center; justify-content:center;
     flex-shrink:0; box-shadow:var(--glow);
   }
   #topbar .club-name {
     font-size:14px; font-weight:900; color:var(--text);
     letter-spacing:.12em; text-transform:uppercase;
-    text-shadow:0 0 12px #00e5ff88;
+    text-shadow:0 0 12px #00ff9d88;
   }
   #topbar .sys-line {
     font-size:9px; color:var(--accent); letter-spacing:.2em; margin-top:2px;
@@ -71,8 +71,8 @@
   #nav {
     position:fixed; bottom:0; left:0; right:0;
     height:var(--nav-h); background:#040c12;
-    border-top:1px solid #00e5ff55; display:flex; z-index:100;
-    box-shadow:0 -4px 24px #00e5ff18;
+    border-top:1px solid #00ff9d55; display:flex; z-index:100;
+    box-shadow:0 -4px 24px #00ff9d18;
   }
   .nav-btn {
     flex:1; display:flex; flex-direction:column;
@@ -85,9 +85,9 @@
     transition:all .2s; padding:0;
   }
   .nav-btn.active {
-    color:var(--accent); background:#00e5ff14;
+    color:var(--accent); background:#00ff9d14;
     border-top:2px solid var(--accent);
-    box-shadow:inset 0 -2px 12px #00e5ff22;
+    box-shadow:inset 0 -2px 12px #00ff9d22;
   }
   .nav-btn svg { transition:filter .2s; }
   .nav-btn.active svg { filter:drop-shadow(0 0 4px var(--accent)); }
@@ -101,7 +101,7 @@
   .page-header h1 {
     font-size:22px; font-weight:900; color:var(--text);
     letter-spacing:.04em; text-transform:uppercase;
-    text-shadow:0 0 20px #00e5ff66;
+    text-shadow:0 0 20px #00ff9d66;
   }
   .page-header .sub {
     margin-top:5px; font-size:11px; color:var(--muted); letter-spacing:.05em;
@@ -117,9 +117,9 @@
   /* ── Card ── */
   .card {
     background:linear-gradient(135deg,#091a28 0%,#060f18 100%);
-    border:1px solid #00e5ff33; border-radius:4px;
+    border:1px solid #00ff9d33; border-radius:4px;
     padding:18px; margin-bottom:12px;
-    box-shadow:0 0 20px #00e5ff0a, inset 0 1px 0 #00e5ff22;
+    box-shadow:0 0 20px #00ff9d0a, inset 0 1px 0 #00ff9d22;
     position:relative; overflow:hidden;
   }
 
@@ -139,7 +139,7 @@
     text-transform:uppercase; transition:all .2s;
   }
   .btn-primary { background:transparent; border:1px solid var(--accent); color:var(--accent); box-shadow:var(--glow); }
-  .btn-primary:hover { background:#00e5ff18; }
+  .btn-primary:hover { background:#00ff9d18; }
   .btn-ghost { background:transparent; border:1px solid var(--border); color:var(--muted); }
   .btn-ghost:hover { border-color:var(--accent); color:var(--accent); }
   .btn-danger { background:transparent; border:1px solid #ff2d5566; color:#ff2d55; box-shadow:0 0 10px #ff2d5533; }
@@ -147,14 +147,14 @@
 
   /* ── Inputs ── */
   .input {
-    background:#071218; border:1px solid #00e5ff44; border-radius:4px;
+    background:#071218; border:1px solid #00ff9d44; border-radius:4px;
     padding:10px 12px; color:var(--text);
     font-family:'Courier New',monospace; font-size:13px;
     outline:none; width:100%;
-    box-shadow:inset 0 0 8px #00e5ff11;
+    box-shadow:inset 0 0 8px #00ff9d11;
     transition:border-color .2s;
   }
-  .input:focus { border-color:var(--accent); box-shadow:inset 0 0 12px #00e5ff22,var(--glow); }
+  .input:focus { border-color:var(--accent); box-shadow:inset 0 0 12px #00ff9d22,var(--glow); }
   select.input option { background:#071218; }
   .label {
     display:block; font-size:10px; color:var(--accent); font-weight:700;
@@ -175,7 +175,7 @@
   .flex-between { display:flex; justify-content:space-between; align-items:center; }
 
   /* ── Progress bar ── */
-  .progress-wrap { height:4px; background:#0e2a38; border:1px solid #00e5ff33; overflow:hidden; }
+  .progress-wrap { height:4px; background:#0e2a38; border:1px solid #00ff9d33; overflow:hidden; }
   .progress-fill { height:100%; transition:width .4s; }
 
   /* ── Toggle switch ── */
@@ -190,12 +190,12 @@
   }
 
   /* ── Player card ── */
-  .player-card { border:1px solid #00e5ff33; border-radius:4px; margin-bottom:10px; overflow:hidden; box-shadow:0 0 12px #00e5ff08; background:linear-gradient(135deg,#091a28,#060f18); }
+  .player-card { border:1px solid #00ff9d33; border-radius:4px; margin-bottom:10px; overflow:hidden; box-shadow:0 0 12px #00ff9d08; background:linear-gradient(135deg,#091a28,#060f18); }
   .player-card-header { display:flex; align-items:center; gap:13px; padding:13px 15px; cursor:pointer; }
-  .player-card-header:hover { background:#00e5ff08; }
-  .player-detail { padding:0 15px 16px; border-top:1px solid #00e5ff33; display:none; }
+  .player-card-header:hover { background:#00ff9d08; }
+  .player-detail { padding:0 15px 16px; border-top:1px solid #00ff9d33; display:none; }
   .player-detail.open { display:block; }
-  .info-row { display:flex; justify-content:space-between; align-items:center; padding:9px 0; border-bottom:1px solid #00e5ff18; }
+  .info-row { display:flex; justify-content:space-between; align-items:center; padding:9px 0; border-bottom:1px solid #00ff9d18; }
   .info-row .info-label { font-size:12px; color:var(--muted); font-weight:600; }
   .info-row .info-value { font-size:13px; color:var(--text); font-weight:600; text-align:right; max-width:60%; }
 
@@ -214,7 +214,7 @@
     transition:all .2s; background:transparent; color:var(--muted);
     border:1px solid #0e3a5288;
   }
-  .toggle-btn.active-cyan { border-color:var(--accent); color:var(--accent); background:#00e5ff22; box-shadow:var(--glow); }
+  .toggle-btn.active-cyan { border-color:var(--accent); color:var(--accent); background:#00ff9d22; box-shadow:var(--glow); }
   .toggle-btn.active-green { border-color:var(--accentB); color:var(--accentB); background:#00ff9d22; box-shadow:var(--glowG); }
 
   /* ── Match row ── */
@@ -242,7 +242,7 @@
   /* ── Form card ── */
   .form-card {
     background:linear-gradient(135deg,#091a28,#060f18);
-    border:1px solid #00e5ff66; border-radius:4px;
+    border:1px solid #00ff9d66; border-radius:4px;
     padding:18px; margin-bottom:20px;
   }
   .form-title { font-size:12px; font-weight:700; color:var(--accent); text-transform:uppercase; letter-spacing:.08em; margin-bottom:16px; }
@@ -265,7 +265,7 @@
   /* ── Poll voter chip ── */
   .voter-row {
     display:flex; align-items:center; justify-content:space-between;
-    background:#071218; border:1px solid #00e5ff18; border-radius:3px;
+    background:#071218; border:1px solid #00ff9d18; border-radius:3px;
     padding:9px 12px; margin-bottom:6px;
   }
   .squad-chip {
@@ -274,23 +274,23 @@
     letter-spacing:.05em; transition:all .15s; background:transparent;
     border:1px solid #0e3a5244; color:var(--muted);
   }
-  .squad-chip.voted { border-color:var(--accent); color:var(--accent); background:#00e5ff22; }
+  .squad-chip.voted { border-color:var(--accent); color:var(--accent); background:#00ff9d22; }
 
   /* ── Profile hero ── */
   .profile-hero {
     background:linear-gradient(135deg,#091a28,#060f18);
-    border:1px solid #00e5ff55; border-radius:4px;
+    border:1px solid #00ff9d55; border-radius:4px;
     padding:28px 22px; text-align:center; margin-bottom:16px;
   }
   .profile-avatar {
     width:72px; height:72px; border-radius:4px; margin:0 auto 16px;
-    background:#00e5ff22; border:2px solid var(--accent);
+    background:#00ff9d22; border:2px solid var(--accent);
     box-shadow:var(--glow);
     display:flex; align-items:center; justify-content:center;
     font-size:22px; font-weight:900; color:var(--accent);
     font-family:'Courier New',monospace;
   }
-  .profile-name { font-size:20px; font-weight:900; letter-spacing:.06em; text-transform:uppercase; text-shadow:0 0 16px #00e5ff44; }
+  .profile-name { font-size:20px; font-weight:900; letter-spacing:.06em; text-transform:uppercase; text-shadow:0 0 16px #00ff9d44; }
   .profile-role { color:var(--accentB); font-weight:700; font-size:12px; margin-top:4px; letter-spacing:.12em; text-transform:uppercase; }
   .profile-club { color:var(--muted); font-size:13px; margin-top:2px; }
   .profile-bio { color:var(--muted); font-size:12px; margin:12px auto 0; max-width:320px; line-height:1.6; }
@@ -300,7 +300,7 @@
   }
   .stat-num { font-size:28px; font-weight:900; }
   .stat-lbl { font-size:11px; color:var(--muted); margin-top:3px; }
-  .info-box { background:#071218; border-radius:3px; padding:10px 12px; border:1px solid #00e5ff22; }
+  .info-box { background:#071218; border-radius:3px; padding:10px 12px; border:1px solid #00ff9d22; }
   .info-box-key { font-size:10px; color:var(--muted); font-weight:700; text-transform:uppercase; letter-spacing:.06em; }
   .info-box-val { font-size:13px; color:var(--text); font-weight:600; margin-top:3px; }
 
@@ -318,9 +318,9 @@
 <div id="topbar">
   <div class="logo">
     <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-      <path d="M15 5 L19 9 L9 19 L5 19 Z" fill="#00e5ff"/>
-      <line x1="5" y1="19" x2="15" y2="5" stroke="#00e5ff" stroke-width="2" stroke-linecap="round"/>
-      <circle cx="4" cy="20" r="1.5" fill="#00e5ff"/>
+      <path d="M15 5 L19 9 L9 19 L5 19 Z" fill="#00ff9d"/>
+      <line x1="5" y1="19" x2="15" y2="5" stroke="#00ff9d" stroke-width="2" stroke-linecap="round"/>
+      <circle cx="4" cy="20" r="1.5" fill="#00ff9d"/>
     </svg>
   </div>
   <div>
@@ -374,7 +374,7 @@ const ROLES = ["Batsman","Bowler","All-rounder","Wicket-keeper","Opening Batsman
 const BATTER_TYPES = ["Right-hand","Left-hand"];
 const BOWLER_TYPES = ["None","Pace – Fast","Pace – Medium Fast","Pace – Medium","Pace – Left-arm Fast","Pace – Left-arm Medium Fast","Pace – Left-arm Medium","Spin – Off-spin","Spin – Leg-spin","Spin – Left-arm orthodox","Spin – Left-arm wrist","Pace & Spin – Fast & Off-spin","Pace & Spin – Fast & Leg-spin","Pace & Spin – Medium & Off-spin","Pace & Spin – Medium & Leg-spin","Pace & Spin – Left-arm Fast & Left-arm orthodox","Pace & Spin – Left-arm Fast & Left-arm wrist","Pace & Spin – Left-arm Medium & Left-arm orthodox","Pace & Spin – Left-arm Medium & Left-arm wrist"];
 const STATUS_COLORS = { Available:"#00ff9d", Injured:"#ff6b35", Suspended:"#ff2d55" };
-const AVATAR_COLORS = ["#00e5ff","#00ff9d","#bf3aff","#ff6b35","#ff2d55","#ffe500"];
+const AVATAR_COLORS = ["#00ff9d","#00ff9d","#bf3aff","#ff6b35","#ff2d55","#ffe500"];
 const FORMATS = ["T20","40-over","50-over","Test","Friendly"];
 const COMPETITIONS = ["League","Cup","Friendly","Knockout"];
 const CONDITIONS = ["Excellent","Good","Fair","Poor"];
@@ -434,7 +434,7 @@ function formatDateShort(d) {
 function isWin(r) { return r && (r.startsWith("W") || r.toLowerCase().startsWith("won")); }
 function isLoss(r) { return r && (r.startsWith("L") || r.toLowerCase().startsWith("lost")); }
 function resultColor(r) { return isWin(r) ? "#00ff9d" : isLoss(r) ? "#ff2d55" : "#f5c542"; }
-function condColor(c) { return c==="Excellent"?"#00ff9d":c==="Good"?"#00e5ff":c==="Fair"?"#ff6b35":"#ff2d55"; }
+function condColor(c) { return c==="Excellent"?"#00ff9d":c==="Good"?"#00ff9d":c==="Fair"?"#ff6b35":"#ff2d55"; }
 function pageHeader(title, sub, actionHtml="") {
   return `<div class="page-header">
     <div class="header-row">
@@ -554,9 +554,9 @@ function renderPlayers() {
         ${infoRow("Type of Batter", p.batterType || "—")}
         ${infoRow("Type of Bowler", p.bowlerType === "None" ? "—" : p.bowlerType)}
         ${infoRow("Car Plate", p.carPlate || "—")}
-        <div style="display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:1px solid #00e5ff18">
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:1px solid #00ff9d18">
           <span style="font-size:12px;color:var(--muted);font-weight:600">Fees Paid</span>
-          ${pill(p.feesPaid ? "#00e5ff" : "#ff2d55", p.feesPaid ? "Paid ✓" : "Unpaid")}
+          ${pill(p.feesPaid ? "#00ff9d" : "#ff2d55", p.feesPaid ? "Paid ✓" : "Unpaid")}
         </div>
         <div style="display:flex;gap:8px;margin-top:14px">
           <button class="btn btn-primary btn-small" onclick="editPlayer(${p.id})">✎ Edit</button>
@@ -622,7 +622,7 @@ function playerForm(p, isEdit) {
         <input class="input ratio-input" id="pf-rb" type="number" min="0" max="99" value="${r.b}">
       </div>
     </div>` : ""}
-    <div style="display:flex;align-items:center;justify-content:space-between;background:#071218;border:1px solid #00e5ff33;border-radius:4px;padding:12px 14px;margin-bottom:18px">
+    <div style="display:flex;align-items:center;justify-content:space-between;background:#071218;border:1px solid #00ff9d33;border-radius:4px;padding:12px 14px;margin-bottom:18px">
       <div>
         <div style="font-size:13px;font-weight:700;color:var(--text)">Fees Paid</div>
         <div style="font-size:11px;color:var(--muted)">Club membership fee</div>
@@ -714,13 +714,13 @@ function renderRatings() {
       <div class="section-label">// Unassigned</div>`;
     unassigned.forEach((p, i) => {
       const c = AVATAR_COLORS[players.indexOf(p) % AVATAR_COLORS.length];
-      html += `<div style="display:flex;align-items:center;gap:12px;background:linear-gradient(135deg,#091a28,#060f18);border:1px solid #00e5ff22;border-radius:4px;padding:12px 14px;margin-bottom:8px">
+      html += `<div style="display:flex;align-items:center;gap:12px;background:linear-gradient(135deg,#091a28,#060f18);border:1px solid #00ff9d22;border-radius:4px;padding:12px 14px;margin-bottom:8px">
         <div style="width:36px;height:36px;border-radius:4px;flex-shrink:0;background:${c}22;border:1px solid ${c};color:${c};display:flex;align-items:center;justify-content:center;font-weight:900;font-size:14px;font-family:'Courier New',monospace">${p.number}</div>
         <div style="flex:1">
           <div style="font-weight:700;color:var(--text);font-size:13px">${p.name}</div>
           <div style="font-size:11px;color:var(--muted)">${p.role}</div>
         </div>
-        <select onchange="assignCategory(${p.id},this.value)" style="background:#071218;border:1px solid #00e5ff44;border-radius:4px;padding:6px 10px;color:var(--muted);font-family:'Courier New',monospace;font-size:12px;outline:none;cursor:pointer">
+        <select onchange="assignCategory(${p.id},this.value)" style="background:#071218;border:1px solid #00ff9d44;border-radius:4px;padding:6px 10px;color:var(--muted);font-family:'Courier New',monospace;font-size:12px;outline:none;cursor:pointer">
           <option value="">Assign…</option>
           ${RATING_CATS.map(cat => `<option value="${cat}">${cat}</option>`).join("")}
         </select>
@@ -732,7 +732,7 @@ function renderRatings() {
   // Category sections
   RATING_CATS.forEach(cat => {
     const catPlayers = players.filter(p => playerCategory[p.id] === cat);
-    const catColor = cat==="1:1"?"#00e5ff":cat==="1:2"?"#00ff9d":cat==="2:1"?"#bf3aff":"#ff6b35";
+    const catColor = cat==="1:1"?"#00ff9d":cat==="1:2"?"#00ff9d":cat==="2:1"?"#bf3aff":"#ff6b35";
     html += `<div style="margin-bottom:20px">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
         <div style="font-size:18px;font-weight:900;color:${catColor};font-family:'Courier New',monospace;text-shadow:0 0 12px ${catColor}66;letter-spacing:2px">${cat}</div>
@@ -898,7 +898,7 @@ function renderPractice() {
         </div>
         <div style="margin-left:8px;flex-shrink:0">${pill(poll.open?"var(--accent)":"var(--muted)",poll.open?"Open":"Closed")}</div>
       </div>
-      <div style="background:#071218;border:1px solid #00e5ff22;border-radius:4px;padding:10px 14px;margin-bottom:14px;display:flex;align-items:center;justify-content:space-between">
+      <div style="background:#071218;border:1px solid #00ff9d22;border-radius:4px;padding:10px 14px;margin-bottom:14px;display:flex;align-items:center;justify-content:space-between">
         <span style="font-size:13px;color:var(--muted);font-weight:600">Players attending</span>
         <span style="font-size:22px;font-weight:900;color:var(--accent)">${poll.votes.length}</span>
       </div>
