@@ -337,6 +337,7 @@
   <div id="tab-Fixtures" class="page-content hidden"></div>
   <div id="tab-Practice" class="page-content hidden"></div>
   <div id="tab-Kit"      class="page-content hidden"></div>
+  <div id="tab-Scoring"  class="page-content hidden"></div>
   <div id="tab-Profile"  class="page-content hidden"></div>
 </div>
 
@@ -361,6 +362,10 @@
   <button class="nav-btn" data-tab="Kit" onclick="switchTab('Kit')">
     <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
     Kit
+  </button>
+  <button class="nav-btn" data-tab="Scoring" onclick="switchTab('Scoring')">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+    Score
   </button>
   <button class="nav-btn" data-tab="Profile" onclick="switchTab('Profile')">
     <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
@@ -467,10 +472,11 @@ function switchTab(tab) {
   document.getElementById(`tab-${tab}`).classList.remove('hidden');
   document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
   document.querySelector(`[data-tab="${tab}"]`).classList.add('active');
-  document.getElementById('header-sys').textContent = `SYS:${profile.season} ▸ ${tab.toUpperCase()}`;
+  const sysEl = document.getElementById('header-sys'); if(sysEl) sysEl.textContent = `SYS:${profile.season||''} ▸ ${tab.toUpperCase()}`;
   render();
 }
 function render() { window[`render${activeTab}`](); }
+function renderScoring_wrapper() { renderScoring(); }
 
 // ── PLAYERS ───────────────────────────────────────────────────────────────
 function renderPlayers() {
@@ -929,12 +935,21 @@ function matchRow(m) {
     <div style="display:flex;flex-wrap:wrap;gap:6px;padding-top:4px">
       ${squad.map(pid => {
         const pl = players.find(x=>x.id===pid);
-        return pl ? `<span style="background:#00ff9d18;border:1px solid #00ff9d44;border-radius:2px;padding:3px 8px;font-size:11px;color:var(--accent);font-family:'Courier New',monospace">${pl.name}</span>` : "";
+        return pl ? `<span style="display:inline-flex;align-items:center;gap:5px;background:#00ff9d18;border:1px solid #00ff9d44;border-radius:2px;padding:3px 8px;font-size:11px;color:var(--accent);font-family:'Courier New',monospace">
+          ${pl.name}
+          <button onclick="removeMatchPlayer(${m.id},${pid})" style="background:none;border:none;cursor:pointer;color:var(--muted);font-size:12px;padding:0;line-height:1;transition:color .2s" onmouseover="this.style.color='#ff2d55'" onmouseout="this.style.color='var(--muted)'">✕</button>
+        </span>` : "";
       }).join("")}
     </div>` : ""}
   </div>`;
 }
 function deleteFixture(id) { matches = matches.filter(m => m.id !== id); renderFixtures(); }
+function removeMatchPlayer(matchId, playerId) {
+  if (matchPlayers[matchId]) {
+    matchPlayers[matchId] = matchPlayers[matchId].filter(id => id !== playerId);
+  }
+  renderFixtures();
+}
 function toggleAddFixture() { showAddFixture = !showAddFixture; renderFixtures(); }
 function setFriendlyType(btn, type) {
   document.getElementById('fx-friendly-mens').className = 'toggle-btn' + (type==='mens'?' active-cyan':'');
@@ -1182,20 +1197,392 @@ function saveProfile() {
   renderProfile();
 }
 
+// ── SCORING ───────────────────────────────────────────────────────────────
+let scoring = {
+  active: false,
+  matchName: "",
+  battingTeam: "Athlone CC",
+  fieldingTeam: "",
+  totalOvers: 20,
+  matchType: "League",
+  tossWinner: "",
+  tossDecision: "bat",
+  innings: 1,
+  runs: 0,
+  wickets: 0,
+  balls: 0,          // legal balls this over
+  totalBalls: 0,
+  extras: { wides:0, noBalls:0, byes:0, legByes:0 },
+  striker: "",
+  nonStriker: "",
+  bowler: "",
+  batsmen: {},       // name -> { runs, balls, fours, sixes, out:bool }
+  bowlers: {},       // name -> { overs, balls, runs, wickets, wides, noBalls }
+  ballLog: [],       // array of ball events
+  target: null,
+  innings1: null,    // saved after first innings
+};
+
+function scoringBatsman(name) {
+  if (!scoring.batsmen[name]) scoring.batsmen[name] = { runs:0, balls:0, fours:0, sixes:0, out:false };
+  return scoring.batsmen[name];
+}
+function scoringBowler(name) {
+  if (!scoring.bowlers[name]) scoring.bowlers[name] = { overs:0, balls:0, runs:0, wickets:0, wides:0, noBalls:0 };
+  return scoring.bowlers[name];
+}
+function oversDisplay(b) { return `${Math.floor(b/6)}.${b%6}`; }
+function runRate() {
+  if (scoring.totalBalls === 0) return "0.00";
+  return ((scoring.runs / scoring.totalBalls) * 6).toFixed(2);
+}
+function reqRunRate() {
+  if (!scoring.target) return "—";
+  const rem = scoring.target - scoring.runs;
+  const ballsLeft = (scoring.totalOvers * 6) - scoring.totalBalls;
+  if (ballsLeft <= 0) return "—";
+  return ((rem / ballsLeft) * 6).toFixed(2);
+}
+
+function renderScoring() {
+  let html = "";
+
+  if (!scoring.active) {
+    // Setup screen
+    html += pageHeader("Scoring", "Set up a new match to start scoring");
+    html += `<div class="form-card">
+      <div class="form-title">New Match</div>
+      <div style="margin-bottom:10px"><label class="label">Batting Team</label><input class="input" id="sc-bat" placeholder="e.g. Athlone 3" value="${scoring.battingTeam}"></div>
+      <div style="margin-bottom:10px"><label class="label">Fielding Team</label><input class="input" id="sc-field" placeholder="e.g. DLR County 5" value="${scoring.fieldingTeam}"></div>
+      <div style="margin-bottom:10px"><label class="label">Match Type</label>
+        <select class="input" id="sc-match-type">
+          ${["League","Cup","Friendly","Knockout","T20 League","T20 Cup"].map(t => `<option${(scoring.matchType||"League")===t?" selected":""}>${t}</option>`).join("")}
+        </select>
+      </div>
+      <div style="margin-bottom:10px"><label class="label">Toss Won By</label><input class="input" id="sc-toss-winner" placeholder="Team that won the toss" value="${scoring.tossWinner||''}"></div>
+      <div style="margin-bottom:10px">
+        <label class="label">Elected To</label>
+        <div class="flex-row">
+          <button class="toggle-btn${(scoring.tossDecision||'bat')==='bat'?' active-cyan':''}" onclick="scSetToss(this,'bat')">Bat</button>
+          <button class="toggle-btn${scoring.tossDecision==='field'?' active-cyan':''}" onclick="scSetToss(this,'field')">Field</button>
+        </div>
+      </div>
+      <div style="margin-bottom:10px"><label class="label">Overs</label><input class="input" id="sc-overs" type="number" value="${scoring.totalOvers}" min="1" max="100"></div>
+      <div style="margin-bottom:10px"><label class="label">Opening Striker</label><input class="input" id="sc-striker" placeholder="Batsman name" value="${scoring.striker}"></div>
+      <div style="margin-bottom:10px"><label class="label">Opening Non-Striker</label><input class="input" id="sc-nonstriker" placeholder="Batsman name" value="${scoring.nonStriker}"></div>
+      <div style="margin-bottom:16px"><label class="label">Opening Bowler</label><input class="input" id="sc-bowler" placeholder="Bowler name" value="${scoring.bowler}"></div>
+      <button class="btn btn-primary" onclick="startScoring()">Start Scoring</button>
+    </div>`;
+
+    if (scoring.innings1) {
+      html += `<div class="card" style="margin-top:16px">
+        <div class="section-label">1st Innings Result</div>
+        <div style="font-size:22px;font-weight:900;color:var(--accent)">${scoring.innings1.team}: ${scoring.innings1.runs}/${scoring.innings1.wickets}</div>
+        <div style="font-size:12px;color:var(--muted);margin-top:4px">${oversDisplay(scoring.innings1.totalBalls)} overs</div>
+      </div>`;
+    }
+
+  } else {
+    // Live scoring screen
+    const ballsThisOver = scoring.balls;
+    const overComplete = ballsThisOver === 6;
+    const over = Math.floor(scoring.totalBalls / 6) + 1;
+    const needing = scoring.target ? `Need ${scoring.target - scoring.runs} off ${scoring.totalOvers*6 - scoring.totalBalls} balls` : "";
+    const totalExtras = scoring.extras.wides + scoring.extras.noBalls + scoring.extras.byes + scoring.extras.legByes;
+
+    html += `
+    <!-- SCOREBOARD -->
+    <div style="background:#030a06;border:1px solid #00ff9d55;border-radius:6px;padding:16px;margin-bottom:12px;text-align:center">
+      <div style="font-size:11px;color:var(--muted);letter-spacing:.12em;text-transform:uppercase;margin-bottom:2px">${scoring.battingTeam} vs ${scoring.fieldingTeam} · ${scoring.matchType||''}</div>
+      <div style="font-size:56px;font-weight:900;color:var(--accent);font-family:'Courier New',monospace;line-height:1;text-shadow:0 0 30px #00ff9d88">${scoring.runs}<span style="font-size:34px;color:#00cc7a">/${scoring.wickets}</span></div>
+      <div style="font-size:14px;color:var(--muted);margin-top:4px">${oversDisplay(scoring.totalBalls)} / ${scoring.totalOvers} overs &nbsp;·&nbsp; RR ${runRate()}</div>
+      ${needing ? `<div style="font-size:13px;color:#ffe500;margin-top:6px;font-weight:700">${needing} &nbsp;·&nbsp; RRR ${reqRunRate()}</div>` : ""}
+      ${scoring.tossWinner ? `<div style="font-size:11px;color:var(--muted);margin-top:4px">🪙 ${scoring.tossWinner} won toss · elected to ${scoring.tossDecision}</div>` : ""}
+    </div>
+
+    <!-- BATSMEN — tap to swap strike -->
+    <div style="display:flex;gap:8px;margin-bottom:12px">
+      <div onclick="swapEnds()" style="flex:1;background:#00ff9d18;border:2px solid #00ff9d;border-radius:6px;padding:12px;cursor:pointer;text-align:center">
+        <div style="font-size:9px;color:var(--accent);font-weight:700;letter-spacing:.12em;text-transform:uppercase">🏏 STRIKER</div>
+        <div style="font-weight:900;color:var(--accent);font-size:15px;margin-top:4px">${scoring.striker || "—"}</div>
+        ${scoring.striker ? `<div style="font-size:12px;color:var(--muted);margin-top:2px">${scoringBatsman(scoring.striker).runs} (${scoringBatsman(scoring.striker).balls}b)</div>` : ""}
+      </div>
+      <div onclick="swapEnds()" style="flex:1;background:#00ff9d08;border:1px solid #00ff9d44;border-radius:6px;padding:12px;cursor:pointer;text-align:center">
+        <div style="font-size:9px;color:var(--muted);font-weight:700;letter-spacing:.12em;text-transform:uppercase">NON-STRIKER</div>
+        <div style="font-weight:700;color:var(--accent);font-size:15px;margin-top:4px">${scoring.nonStriker || "—"}</div>
+        ${scoring.nonStriker ? `<div style="font-size:12px;color:var(--muted);margin-top:2px">${scoringBatsman(scoring.nonStriker).runs} (${scoringBatsman(scoring.nonStriker).balls}b)</div>` : ""}
+      </div>
+    </div>
+
+    <!-- BOWLER & THIS OVER -->
+    <div style="background:#030a06;border:1px solid #00ff9d22;border-radius:6px;padding:12px;margin-bottom:12px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+        <div>
+          <div style="font-size:9px;color:var(--muted);letter-spacing:.12em;text-transform:uppercase">BOWLER · Over ${over}</div>
+          <div style="font-weight:700;color:var(--accent);font-size:14px">${scoring.bowler || "—"} &nbsp;<span style="font-size:12px;color:var(--muted)">${scoring.bowler ? scoringBowler(scoring.bowler).runs+"R "+scoringBowler(scoring.bowler).wickets+"W" : ""}</span></div>
+        </div>
+        <div style="font-size:12px;color:var(--muted)">Ball ${ballsThisOver}/6</div>
+      </div>
+      <div style="display:flex;gap:5px">
+        ${scoring.ballLog.slice(-6).map(b => {
+          const col = b==="W"?"#ff2d55":b==="Wd"||b==="Nb"?"#ffe500":b==="6"?"#bf3aff":b==="4"?"#00cc7a":"var(--accent)";
+          return `<div style="width:36px;height:36px;border-radius:50%;border:2px solid ${col};background:${col}22;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:13px;color:${col};font-family:'Courier New',monospace;flex-shrink:0">${b}</div>`;
+        }).join("")}
+        ${Array(Math.max(0,6-scoring.ballLog.slice(-6).length)).fill('<div style="width:36px;height:36px;border-radius:50%;border:1px dashed #00ff9d22;flex-shrink:0"></div>').join("")}
+      </div>
+    </div>
+
+    ${overComplete ? `
+    <!-- END OF OVER PROMPT -->
+    <div style="background:#00ff9d18;border:2px solid #00ff9d;border-radius:6px;padding:16px;margin-bottom:12px;text-align:center">
+      <div style="color:var(--accent);font-weight:900;font-size:15px;margin-bottom:12px">⚡ OVER COMPLETE</div>
+      <input class="input" id="sc-new-bowler" placeholder="New bowler name" style="margin-bottom:10px;text-align:center;font-size:14px">
+      <button onclick="endOver()" style="width:100%;padding:14px;border-radius:6px;border:2px solid var(--accent);background:#00ff9d22;color:var(--accent);font-family:'Courier New',monospace;font-size:14px;font-weight:900;cursor:pointer;letter-spacing:.08em;text-transform:uppercase">End Over →</button>
+    </div>` : `
+    <!-- BIG RUN BUTTONS -->
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:8px">
+      ${["0","1","2","3"].map(r => `<button onclick="addBall('${r}')" style="padding:20px 0;border-radius:6px;border:1px solid #00ff9d44;background:#00ff9d12;color:var(--accent);font-family:'Courier New',monospace;font-size:22px;font-weight:900;cursor:pointer;transition:background .15s" onmouseover="this.style.background='#00ff9d2a'" onmouseout="this.style.background='#00ff9d12'">${r}</button>`).join("")}
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:8px">
+      <button onclick="addBall('4')" style="padding:20px 0;border-radius:6px;border:2px solid #00cc7a;background:#00cc7a18;color:#00cc7a;font-family:'Courier New',monospace;font-size:24px;font-weight:900;cursor:pointer;box-shadow:0 0 12px #00cc7a33">4</button>
+      <button onclick="addBall('6')" style="padding:20px 0;border-radius:6px;border:2px solid #bf3aff;background:#bf3aff18;color:#bf3aff;font-family:'Courier New',monospace;font-size:24px;font-weight:900;cursor:pointer;box-shadow:0 0 12px #bf3aff33">6</button>
+      <button onclick="addWicket()" style="padding:20px 0;border-radius:6px;border:2px solid #ff2d55;background:#ff2d5518;color:#ff2d55;font-family:'Courier New',monospace;font-size:16px;font-weight:900;cursor:pointer;box-shadow:0 0 12px #ff2d5533;letter-spacing:.04em">OUT</button>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:8px">
+      <button onclick="addExtra('wide')"   style="padding:12px 0;border-radius:6px;border:1px solid #ffe50066;background:#ffe50012;color:#ffe500;font-family:'Courier New',monospace;font-size:12px;font-weight:700;cursor:pointer">Wd</button>
+      <button onclick="addExtra('noball')" style="padding:12px 0;border-radius:6px;border:1px solid #ffe50066;background:#ffe50012;color:#ffe500;font-family:'Courier New',monospace;font-size:12px;font-weight:700;cursor:pointer">Nb</button>
+      <button onclick="addExtra('bye')"    style="padding:12px 0;border-radius:6px;border:1px solid #00ff9d33;background:#00ff9d08;color:var(--muted);font-family:'Courier New',monospace;font-size:12px;font-weight:700;cursor:pointer">Bye</button>
+      <button onclick="addExtra('legbye')" style="padding:12px 0;border-radius:6px;border:1px solid #00ff9d33;background:#00ff9d08;color:var(--muted);font-family:'Courier New',monospace;font-size:12px;font-weight:700;cursor:pointer">Lb</button>
+    </div>
+    <button onclick="undoLast()" style="width:100%;padding:12px;border-radius:6px;border:1px solid #00ff9d22;background:transparent;color:var(--muted);font-family:'Courier New',monospace;font-size:13px;font-weight:700;cursor:pointer;margin-bottom:12px">↩ Undo Last Ball</button>`}
+
+    <!-- NEW BATSMAN (shows after wicket or as needed) -->
+    <div style="background:#030a06;border:1px solid #00ff9d22;border-radius:6px;padding:12px;margin-bottom:8px">
+      <div style="font-size:9px;color:var(--muted);letter-spacing:.12em;text-transform:uppercase;margin-bottom:8px">New Batsman / Change Bowler</div>
+      <div style="display:flex;gap:8px;margin-bottom:8px">
+        <input class="input" id="sc-new-bat" placeholder="New batsman" style="flex:1">
+        <button onclick="newBatsman()" style="padding:10px 14px;border-radius:6px;border:1px solid #00ff9d;background:#00ff9d18;color:var(--accent);font-family:'Courier New',monospace;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap">Set</button>
+      </div>
+      <div style="display:flex;gap:8px">
+        <input class="input" id="sc-mid-bowler" placeholder="New bowler" style="flex:1">
+        <button onclick="changeBowler()" style="padding:10px 14px;border-radius:6px;border:1px solid #00ff9d;background:#00ff9d18;color:var(--accent);font-family:'Courier New',monospace;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap">Set</button>
+      </div>
+    </div>
+
+    <!-- EXTRAS + CONTROLS -->
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:10px;text-align:center">
+      ${[["Wd",scoring.extras.wides,"#ffe500"],["Nb",scoring.extras.noBalls,"#ffe500"],["By",scoring.extras.byes,"var(--muted)"],["Lb",scoring.extras.legByes,"var(--muted)"]].map(([l,v,c])=>`
+        <div style="background:#00ff9d08;border:1px solid #00ff9d22;border-radius:4px;padding:8px">
+          <div style="font-size:16px;font-weight:900;color:${c}">${v}</div>
+          <div style="font-size:10px;color:var(--muted)">${l}</div>
+        </div>`).join("")}
+    </div>
+
+    <div style="display:flex;gap:8px;margin-bottom:20px">
+      ${scoring.innings === 1 ? `<button onclick="endInnings()" style="flex:1;padding:12px;border-radius:6px;border:1px solid #00ff9d33;background:transparent;color:var(--muted);font-family:'Courier New',monospace;font-size:12px;font-weight:700;cursor:pointer">End 1st Innings</button>` : ""}
+      <button onclick="resetScoring()" style="flex:1;padding:12px;border-radius:6px;border:1px solid #ff2d5544;background:transparent;color:#ff2d55;font-family:'Courier New',monospace;font-size:12px;font-weight:700;cursor:pointer" id="reset-btn">Reset Match</button>
+    </div>`;
+  }
+
+  document.getElementById("tab-Scoring").innerHTML = html;
+}
+
+function scSetToss(btn, decision) {
+  btn.closest('.flex-row').querySelectorAll('.toggle-btn').forEach(b => b.classList.remove('active-cyan'));
+  btn.classList.add('active-cyan');
+}
+
+function startScoring() {
+  const bat   = document.getElementById('sc-bat')?.value?.trim();
+  const field = document.getElementById('sc-field')?.value?.trim();
+  const overs = +document.getElementById('sc-overs')?.value || 20;
+  const str   = document.getElementById('sc-striker')?.value?.trim();
+  const nstr  = document.getElementById('sc-nonstriker')?.value?.trim();
+  const bowl  = document.getElementById('sc-bowler')?.value?.trim();
+  const tossW = document.getElementById('sc-toss-winner')?.value?.trim() || "";
+  const tossD = document.querySelector('.flex-row .active-cyan')?.textContent?.trim().toLowerCase() === "field" ? "field" : "bat";
+  const matchType = document.getElementById('sc-match-type')?.value || "League";
+  if (!bat || !field || !str || !nstr || !bowl) { alert("Please fill in all fields."); return; }
+  scoring = { ...scoring, active:true, matchName:`${bat} vs ${field}`, battingTeam:bat, fieldingTeam:field, totalOvers:overs, innings:1, tossWinner:tossW, tossDecision:tossD, matchType, runs:0, wickets:0, balls:0, totalBalls:0, extras:{wides:0,noBalls:0,byes:0,legByes:0}, striker:str, nonStriker:nstr, bowler:bowl, batsmen:{}, bowlers:{}, ballLog:[], target:null };
+  scoringBatsman(str); scoringBatsman(nstr); scoringBowler(bowl);
+  renderScoring();
+}
+
+function addBall(runs) {
+  const r = parseInt(runs);
+  const bat = scoringBatsman(scoring.striker);
+  const bowl = scoringBowler(scoring.bowler);
+  bat.runs += r; bat.balls++;
+  if (r === 4) bat.fours++;
+  if (r === 6) bat.sixes++;
+  scoring.runs += r;
+  scoring.balls++;
+  scoring.totalBalls++;
+  bowl.runs += r; bowl.balls++;
+  if (scoring.balls >= 6) bowl.overs++;
+  scoring.ballLog.push(String(r));
+  // Swap ends on odd runs
+  if (r % 2 !== 0) { const tmp = scoring.striker; scoring.striker = scoring.nonStriker; scoring.nonStriker = tmp; }
+  saveData(); renderScoring();
+}
+
+function addExtra(type) {
+  if (type === "wide") {
+    scoring.runs++; scoring.extras.wides++;
+    scoringBowler(scoring.bowler).runs++; scoringBowler(scoring.bowler).wides++;
+    scoring.ballLog.push("Wd");
+  } else if (type === "noball") {
+    scoring.runs++; scoring.extras.noBalls++;
+    scoringBowler(scoring.bowler).runs++; scoringBowler(scoring.bowler).noBalls++;
+    scoring.ballLog.push("Nb");
+  } else if (type === "bye") {
+    scoring.runs++; scoring.extras.byes++;
+    scoring.balls++; scoring.totalBalls++;
+    scoringBatsman(scoring.striker).balls++;
+    scoring.ballLog.push("B");
+  } else if (type === "legbye") {
+    scoring.runs++; scoring.extras.legByes++;
+    scoring.balls++; scoring.totalBalls++;
+    scoringBatsman(scoring.striker).balls++;
+    scoring.ballLog.push("Lb");
+  }
+  saveData(); renderScoring();
+}
+
+function addWicket() {
+  scoring.wickets++;
+  scoring.balls++; scoring.totalBalls++;
+  scoringBatsman(scoring.striker).balls++;
+  scoringBatsman(scoring.striker).out = true;
+  scoringBowler(scoring.bowler).runs += 0;
+  scoringBowler(scoring.bowler).balls++;
+  scoringBowler(scoring.bowler).wickets++;
+  scoring.ballLog.push("W");
+  saveData(); renderScoring();
+}
+
+function undoLast() {
+  // Simple undo: remove last ball log entry and re-render
+  if (scoring.ballLog.length === 0) return;
+  scoring.ballLog.pop();
+  // Note: full undo state would require a history stack; this just removes the visual
+  renderScoring();
+}
+
+function endOver() {
+  const newBowler = document.getElementById('sc-new-bowler')?.value?.trim();
+  if (!newBowler) { alert("Enter new bowler name."); return; }
+  scoring.bowler = newBowler;
+  scoringBowler(newBowler);
+  scoring.balls = 0;
+  scoring.ballLog = [];
+  // Swap striker/non-striker at end of over
+  const tmp = scoring.striker; scoring.striker = scoring.nonStriker; scoring.nonStriker = tmp;
+  saveData(); renderScoring();
+}
+
+function newBatsman() {
+  const name = document.getElementById('sc-new-bat')?.value?.trim();
+  if (!name) return;
+  scoring.striker = name;
+  scoringBatsman(name);
+  renderScoring();
+}
+
+function swapEnds() {
+  const tmp = scoring.striker; scoring.striker = scoring.nonStriker; scoring.nonStriker = tmp;
+  renderScoring();
+}
+
+function changeBowler() {
+  const name = document.getElementById('sc-mid-bowler')?.value?.trim();
+  if (!name) return;
+  scoring.bowler = name;
+  scoringBowler(name);
+  renderScoring();
+}
+
+function endInnings() {
+  scoring.innings1 = { team:scoring.battingTeam, runs:scoring.runs, wickets:scoring.wickets, totalBalls:scoring.totalBalls };
+  scoring.target = scoring.runs + 1;
+  // Reset for 2nd innings
+  const bat2 = scoring.fieldingTeam;
+  const field2 = scoring.battingTeam;
+  scoring = { ...scoring, active:false, innings:2, battingTeam:bat2, fieldingTeam:field2, runs:0, wickets:0, balls:0, totalBalls:0, extras:{wides:0,noBalls:0,byes:0,legByes:0}, striker:"", nonStriker:"", bowler:"", batsmen:{}, bowlers:{}, ballLog:[] };
+  saveData(); renderScoring();
+}
+
+function resetScoring() {
+  scoring = { active:false, matchName:"", battingTeam:"Athlone CC", fieldingTeam:"", totalOvers:20, matchType:"League", tossWinner:"", tossDecision:"bat", innings:1, runs:0, wickets:0, balls:0, totalBalls:0, extras:{wides:0,noBalls:0,byes:0,legByes:0}, striker:"", nonStriker:"", bowler:"", batsmen:{}, bowlers:{}, ballLog:[], target:null, innings1:null };
+  saveData(); renderScoring();
+}
+
+
+function saveData() {
+  try {
+    localStorage.setItem('athlonecc_players',        JSON.stringify(players));
+    localStorage.setItem('athlonecc_matches',        JSON.stringify(matches));
+    localStorage.setItem('athlonecc_equipment',      JSON.stringify(equipment));
+    localStorage.setItem('athlonecc_polls',          JSON.stringify(polls));
+    localStorage.setItem('athlonecc_ratings',        JSON.stringify(ratings));
+    localStorage.setItem('athlonecc_profile',        JSON.stringify(profile));
+    localStorage.setItem('athlonecc_matchPlayers',   JSON.stringify(matchPlayers));
+    localStorage.setItem('athlonecc_playerCategory', JSON.stringify(playerCategory));
+    localStorage.setItem('athlonecc_scoring',        JSON.stringify(scoring));
+  } catch(e) { console.warn('Save failed:', e); }
+}
+
+function loadData() {
+  try {
+    const p  = localStorage.getItem('athlonecc_players');        if (p)  players        = JSON.parse(p);
+    const m  = localStorage.getItem('athlonecc_matches');        if (m)  matches        = JSON.parse(m);
+    const e  = localStorage.getItem('athlonecc_equipment');      if (e)  equipment      = JSON.parse(e);
+    const po = localStorage.getItem('athlonecc_polls');          if (po) polls          = JSON.parse(po);
+    const r  = localStorage.getItem('athlonecc_ratings');        if (r)  ratings        = JSON.parse(r);
+    const pr = localStorage.getItem('athlonecc_profile');        if (pr) profile        = JSON.parse(pr);
+    const mp = localStorage.getItem('athlonecc_matchPlayers');   if (mp) matchPlayers   = JSON.parse(mp);
+    const pc = localStorage.getItem('athlonecc_playerCategory'); if (pc) playerCategory = JSON.parse(pc);
+    const sc = localStorage.getItem('athlonecc_scoring');        if (sc) scoring        = JSON.parse(sc);
+  } catch(e) { console.warn('Load failed:', e); }
+}
+
+// Auto-save whenever any data changes — patch all mutating functions
+const _origSave = saveData;
+function autosave() { _origSave(); }
+
+// Patch key functions to auto-save after every change
+const _patchFns = [
+  'savePlayer','deletePlayer','addFixture','deleteFixture','removeMatchPlayer',
+  'addEquip','deleteEquip','updateEquip','createPoll','deletePoll','closePoll',
+  'castVote','toggleVote','removeVote','saveProfile','assignCategory',
+  'togglePlayerForMatch','doneSelectingPlayers'
+];
+_patchFns.forEach(fn => {
+  const orig = window[fn];
+  if (orig) window[fn] = function(...args) {
+    const result = orig.apply(this, args);
+    autosave();
+    return result;
+  };
+});
+
 // ── Init ──────────────────────────────────────────────────────────────────
+loadData(); // Load saved data first
 renderPlayers();
 renderRatings();
 renderFixtures();
 renderPractice();
 renderKit();
+renderScoring();
 renderProfile();
 
 // ── Google Sheets Sync ────────────────────────────────────────────────────
 // Paste your deployed Apps Script Web App URL below after "SYNC_URL ="
-const SYNC_URL = "https://script.google.com/macros/s/AKfycbya0PERC3Qpq9s7j5XW7GtlCpIj25OZkq5MlCnCA7_vZue-OdX_SQhPR8AtejiQAxgp/exec";
+const SYNC_URL = "https://script.google.com/macros/s/AKfycbwwl5OzdU79nz2v2O9ykmnFJBahERUG2HPNwX-aljkv_Bm4ahA98Psl1ev-qqrB82L5/exec";
 
 let syncStatus = "idle"; // idle | syncing | success | error
 
+// ── Push data TO sheets ───────────────────────────────────────────────────
 function syncToSheets() {
   if (!SYNC_URL) {
     showSyncToast("⚠ No sync URL set. Paste your Apps Script URL into SYNC_URL.", "warn");
@@ -1205,17 +1592,12 @@ function syncToSheets() {
   syncStatus = "syncing";
   updateSyncBtn();
 
-  // Flatten ratings into player rows
   const playerRows = players.map(p => {
     const r = ratings[p.id] || { a:"", b:"" };
     return { ...p, ratingA: r.a, ratingB: r.b };
   });
-
-  // Flatten profile into key/value rows
   const profileRows = Object.entries(profile).map(([field, value]) => ({ field, value }));
 
-  // Each sync does a full clear-and-rewrite, so any deleted entries
-  // (players, fixtures, equipment, polls) are automatically removed from the sheet.
   const sheets = [
     { sheet:"Players",   data: playerRows },
     { sheet:"Fixtures",  data: matches },
@@ -1224,7 +1606,6 @@ function syncToSheets() {
     { sheet:"Profile",   data: profileRows },
   ];
 
-  // Send all sheets sequentially
   const sendNext = (i) => {
     if (i >= sheets.length) {
       syncStatus = "success";
@@ -1235,19 +1616,58 @@ function syncToSheets() {
     }
     fetch(SYNC_URL, {
       method: "POST",
-      mode: "no-cors",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "text/plain" },
       body: JSON.stringify(sheets[i]),
     })
-    .then(() => sendNext(i + 1))
+    .then(r => r.json())
+    .then(res => {
+      if (res.ok) sendNext(i + 1);
+      else throw new Error(res.error || "Unknown error");
+    })
     .catch(err => {
-      syncStatus = "error";
-      updateSyncBtn();
-      showSyncToast("✕ Sync failed: " + err.message, "error");
-      setTimeout(() => { syncStatus = "idle"; updateSyncBtn(); }, 4000);
+      // Fallback: try no-cors (data likely still written even without response)
+      fetch(SYNC_URL, {
+        method: "POST",
+        mode: "no-cors",
+        headers: { "Content-Type": "text/plain" },
+        body: JSON.stringify(sheets[i]),
+      }).then(() => sendNext(i + 1)).catch(() => {
+        syncStatus = "error";
+        updateSyncBtn();
+        showSyncToast("✕ Sync failed — check your URL", "error");
+        setTimeout(() => { syncStatus = "idle"; updateSyncBtn(); }, 4000);
+      });
     });
   };
   sendNext(0);
+}
+
+// ── Pull data FROM sheets ─────────────────────────────────────────────────
+function loadFromSheets() {
+  if (!SYNC_URL) {
+    showSyncToast("⚠ No sync URL set.", "warn");
+    return;
+  }
+  showSyncToast("↓ Loading from Google Sheets…", "warn");
+  fetch(SYNC_URL + "?action=read")
+    .then(r => r.json())
+    .then(res => {
+      if (!res.ok || !res.data) throw new Error("No data returned");
+      const d = res.data;
+      if (d.Players   && d.Players.length)   players   = d.Players;
+      if (d.Fixtures  && d.Fixtures.length)   matches   = d.Fixtures;
+      if (d.Equipment && d.Equipment.length)  equipment = d.Equipment;
+      if (d.Polls     && d.Polls.length)      polls     = d.Polls;
+      if (d.Profile   && d.Profile.length) {
+        d.Profile.forEach(row => { if (row.field) profile[row.field] = row.value; });
+      }
+      saveData();
+      render();
+      showSyncToast("✓ Data loaded from Google Sheets", "success");
+    })
+    .catch(err => {
+      showSyncToast("✕ Load failed — " + err.message, "error");
+    });
 }
 
 function updateSyncBtn() {
@@ -1286,14 +1706,16 @@ function showSyncToast(msg, type) {
 (function injectSyncBtn() {
   const topbar = document.getElementById("topbar");
   if (!topbar) return;
-  const btn = document.createElement("button");
-  btn.id = "sync-btn";
-  btn.textContent = "⟳ Sync to Sheets";
-  btn.onclick = syncToSheets;
-  btn.style.cssText = "margin-left:auto;background:transparent;border:1px solid var(--accent);color:var(--accent);font-family:'Courier New',monospace;font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;padding:6px 12px;border-radius:2px;cursor:pointer;box-shadow:var(--glow);transition:all .2s;flex-shrink:0";
-  // Insert before the status dot
   const dot = topbar.querySelector(".status-dot");
-  topbar.insertBefore(btn, dot);
+
+  // ⟳ Sync to Sheets button
+  const syncBtn = document.createElement("button");
+  syncBtn.id = "sync-btn";
+  syncBtn.textContent = "⟳ Sync";
+  syncBtn.title = "Push data to Google Sheets";
+  syncBtn.onclick = syncToSheets;
+  syncBtn.style.cssText = "margin-left:auto;background:transparent;border:1px solid var(--accent);color:var(--accent);font-family:'Courier New',monospace;font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;padding:6px 10px;border-radius:2px;cursor:pointer;box-shadow:var(--glow);transition:all .2s;flex-shrink:0";
+  topbar.insertBefore(syncBtn, dot);
 })();
 
 </script>
