@@ -449,6 +449,8 @@ let playerMode = null; // null | "add" | player-id
 let openCards = new Set();
 let showAddFixture = false;
 let fixtureTeamTab = "Team 1";
+let editFixtureId = null;
+let availability = {}; // matchId -> [playerName, ...]
 let showAddEquip = false;
 let showCreatePoll = false;
 
@@ -921,6 +923,30 @@ function renderFixtures() {
     </div>`;
   }
 
+  // Edit fixture form
+  if (editFixtureId) {
+    const em = matches.find(x => x.id === editFixtureId);
+    if (em) {
+      html += `<div class="form-card" style="border-color:#00ff9d66">
+        <div class="form-title">Edit Fixture</div>
+        <div style="margin-bottom:10px"><label class="label">Opponent Club</label><input class="input" id="ef-opp" value="${em.opponent}"></div>
+        <div style="margin-bottom:10px"><label class="label">Competition</label><select class="input" id="ef-comp">${selectOpts(COMPETITIONS, em.competition)}</select></div>
+        <div style="margin-bottom:10px"><label class="label">Team</label><select class="input" id="ef-team">${selectOpts([...TEAMS,"Friendly","Friendly-W"], em.team||"Team 1")}</select></div>
+        <div class="grid2" style="margin-bottom:10px">
+          <div><label class="label">Date</label><input class="input" id="ef-date" type="date" value="${em.date}"></div>
+          <div><label class="label">Time</label><input class="input" id="ef-time" type="time" value="${em.time||''}"></div>
+          <div><label class="label">Format</label><select class="input" id="ef-format">${selectOpts(FORMATS, em.format)}</select></div>
+          <div><label class="label">Venue</label><select class="input" id="ef-venue">${selectOpts(["Home","Away","Neutral"], em.venue)}</select></div>
+        </div>
+        <div style="margin-bottom:14px"><label class="label">Result (optional)</label><input class="input" id="ef-result" placeholder="e.g. W by 6 wkts" value="${em.result||''}"></div>
+        <div class="flex-row">
+          <button class="btn btn-primary" onclick="saveEditFixture()">Save Changes</button>
+          <button class="btn btn-ghost" onclick="cancelEditFixture()">Cancel</button>
+        </div>
+      </div>`;
+    }
+  }
+
   if (upcoming.length > 0) {
     html += sectionLabel("Upcoming Fixtures");
     upcoming.forEach(m => { html += matchRow(m); });
@@ -933,6 +959,26 @@ function renderFixtures() {
     html += `<div class="empty">No fixtures for <strong>${fixtureTeamTab}</strong> yet. Tap <strong>Add</strong> to schedule one.</div>`;
   }
   document.getElementById("tab-Fixtures").innerHTML = html;
+}
+function startEditFixture(id) { editFixtureId = id; showAddFixture = false; renderFixtures(); }
+function cancelEditFixture() { editFixtureId = null; renderFixtures(); }
+function saveEditFixture() {
+  const opp = document.getElementById('ef-opp')?.value?.trim();
+  if (!opp) return;
+  matches = matches.map(m => m.id === editFixtureId ? {
+    ...m,
+    opponent: opp,
+    competition: document.getElementById('ef-comp')?.value || m.competition,
+    team: document.getElementById('ef-team')?.value || m.team,
+    date: document.getElementById('ef-date')?.value || m.date,
+    time: document.getElementById('ef-time')?.value || m.time,
+    format: document.getElementById('ef-format')?.value || m.format,
+    venue: document.getElementById('ef-venue')?.value || m.venue,
+    result: document.getElementById('ef-result')?.value?.trim() || null,
+  } : m);
+  editFixtureId = null;
+  saveData();
+  renderFixtures();
 }
 function toggleFxTeamField(comp) {
   const row = document.getElementById('fx-team-row');
@@ -962,14 +1008,43 @@ function matchRow(m) {
         ${!m.result ? pill(m.venue==="Home"?"var(--accent)":"#ff6b35", m.venue) : ""}
         ${m.result ? pill(rc, isWin(m.result)?"W":isLoss(m.result)?"L":"D") : ""}
         <button onclick="deleteFixture(${m.id})" style="background:none;border:none;cursor:pointer;color:var(--muted);font-size:14px;padding:2px 6px;border-radius:4px;line-height:1;transition:color .2s" onmouseover="this.style.color='#ff2d55'" onmouseout="this.style.color='var(--muted)'">✕</button>
+        <button onclick="startEditFixture(${m.id})" style="background:none;border:none;cursor:pointer;color:var(--muted);font-size:13px;padding:2px 6px;border-radius:4px;line-height:1;transition:color .2s" onmouseover="this.style.color='var(--accent)'" onmouseout="this.style.color='var(--muted)'">✎</button>
       </div>
     </div>
     <div style="display:flex;align-items:center;justify-content:space-between;padding-top:8px;border-top:1px solid #00ff9d18">
       <div style="font-size:11px;color:var(--muted);font-family:'Courier New',monospace">
         ${squad.length > 0 ? `${squad.length} player${squad.length!==1?"s":""} selected` : "No players selected"}
       </div>
-      <button class="btn btn-primary btn-small" onclick="openPlayerSelection(${m.id})">+ Select Players</button>
+      <div style="display:flex;gap:6px">
+        <button class="btn btn-ghost btn-small" onclick="toggleAvailability(${m.id})" style="font-size:11px;padding:6px 10px">✋ Availability</button>
+        <button class="btn btn-primary btn-small" onclick="openPlayerSelection(${m.id})">+ Select Players</button>
+      </div>
     </div>
+
+    ${availabilityOpen === m.id ? `
+    <div style="background:#00ff9d0a;border:1px solid #00ff9d33;border-radius:4px;padding:12px">
+      <div style="font-size:10px;color:var(--accent);font-weight:700;letter-spacing:.12em;text-transform:uppercase;margin-bottom:10px">// Mark Your Availability</div>
+      <div style="font-size:12px;color:var(--muted);margin-bottom:10px">Tap your name to mark yourself available for this match</div>
+      <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px">
+        ${players.map(p => {
+          const avail = (availability[m.id]||[]).includes(p.name);
+          return `<button onclick="togglePlayerAvailability(${m.id},'${p.name.replace(/'/g,"\\'")}')"
+            style="padding:7px 13px;border-radius:4px;border:1px solid ${avail?"var(--accentB)":"#00ff9d33"};background:${avail?"#00ff9d22":"transparent"};color:${avail?"var(--accentB)":"var(--muted)"};font-family:'Courier New',monospace;font-size:12px;font-weight:700;cursor:pointer;transition:all .2s">
+            ${avail?"✓ ":""}${p.name}
+          </button>`;
+        }).join("")}
+      </div>
+      ${(availability[m.id]||[]).length > 0 ? `
+      <div style="font-size:11px;color:var(--muted);padding-top:8px;border-top:1px solid #00ff9d18">
+        <span style="color:var(--accentB);font-weight:700">${(availability[m.id]||[]).length} available:</span>
+        ${(availability[m.id]||[]).join(", ")}
+      </div>` : ""}
+    </div>` : `
+    ${(availability[m.id]||[]).length > 0 ? `
+    <div style="font-size:11px;color:var(--muted);padding-top:4px">
+      <span style="color:var(--accentB);font-weight:700">✓ ${(availability[m.id]||[]).length} available:</span>
+      ${(availability[m.id]||[]).join(", ")}
+    </div>` : ""}`}
     ${squad.length > 0 ? `
     <div style="display:flex;flex-wrap:wrap;gap:6px;padding-top:4px">
       ${squad.map(pid => {
@@ -981,6 +1056,20 @@ function matchRow(m) {
       }).join("")}
     </div>` : ""}
   </div>`;
+}
+let availabilityOpen = null; // matchId whose availability panel is open
+
+function toggleAvailability(matchId) {
+  availabilityOpen = availabilityOpen === matchId ? null : matchId;
+  renderFixtures();
+}
+function togglePlayerAvailability(matchId, name) {
+  if (!availability[matchId]) availability[matchId] = [];
+  const idx = availability[matchId].indexOf(name);
+  if (idx > -1) availability[matchId].splice(idx, 1);
+  else availability[matchId].push(name);
+  saveData();
+  renderFixtures();
 }
 function deleteFixture(id) { matches = matches.filter(m => m.id !== id); renderFixtures(); }
 function removeMatchPlayer(matchId, playerId) {
@@ -1666,6 +1755,7 @@ function saveData() {
     localStorage.setItem('athlonecc_matchPlayers',   JSON.stringify(matchPlayers));
     localStorage.setItem('athlonecc_playerCategory', JSON.stringify(playerCategory));
     localStorage.setItem('athlonecc_scoring',        JSON.stringify(scoring));
+    localStorage.setItem('athlonecc_availability',   JSON.stringify(availability));
   } catch(e) { console.warn('Save failed:', e); }
 }
 
@@ -1680,6 +1770,7 @@ function loadData() {
     const mp = localStorage.getItem('athlonecc_matchPlayers');   if (mp) matchPlayers   = JSON.parse(mp);
     const pc = localStorage.getItem('athlonecc_playerCategory'); if (pc) playerCategory = JSON.parse(pc);
     const sc = localStorage.getItem('athlonecc_scoring');        if (sc) scoring        = JSON.parse(sc);
+    const av = localStorage.getItem('athlonecc_availability');   if (av) availability   = JSON.parse(av);
   } catch(e) { console.warn('Load failed:', e); }
 }
 
@@ -1715,7 +1806,7 @@ renderProfile();
 
 // ── Google Sheets Sync ────────────────────────────────────────────────────
 // Paste your deployed Apps Script Web App URL below after "SYNC_URL ="
-const SYNC_URL = "https://script.google.com/macros/s/AKfycbxwNsjUTSgvHogGWd8XsMVMbdUXr_ffUhF9Y08kPYRox8j2ht-Rd2jaNuh2XclPrYHI/exec";
+const SYNC_URL = "https://script.google.com/macros/s/AKfycbzq2ycyW1rNR2LlQaPmQwvmzu_TxrP5zXjLddC0az-vw1Ssd9rd-iZnBtIofyYhd2QK/exec";
 
 let syncStatus = "idle"; // idle | syncing | success | error
 
