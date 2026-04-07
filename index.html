@@ -29,6 +29,42 @@
     pointer-events:none; z-index:9999;
   }
 
+  /* ── Scoring tab overrides — white bg, black text ── */
+  #tab-Scoring {
+    background: #ffffff;
+    color: #111111;
+  }
+  #tab-Scoring input,
+  #tab-Scoring select,
+  #tab-Scoring textarea {
+    background: #f4f4f4 !important;
+    color: #111111 !important;
+    border-color: #cccccc !important;
+    box-shadow: none !important;
+    font-family: 'Segoe UI', sans-serif !important;
+  }
+  #tab-Scoring .label {
+    color: #333333 !important;
+    font-family: 'Segoe UI', sans-serif !important;
+  }
+  #tab-Scoring .section-label {
+    color: #333333 !important;
+    font-family: 'Segoe UI', sans-serif !important;
+  }
+  #tab-Scoring .form-card {
+    background: #f9f9f9 !important;
+    border-color: #dddddd !important;
+  }
+  #tab-Scoring .card {
+    background: #f9f9f9 !important;
+    border-color: #dddddd !important;
+    box-shadow: 0 1px 4px #00000012 !important;
+  }
+  #tab-Scoring .btn-ghost {
+    color: #444444 !important;
+    border-color: #cccccc !important;
+  }
+
   /* ── Scrollbar ── */
   ::-webkit-scrollbar { width:4px; }
   ::-webkit-scrollbar-track { background:#050d12; }
@@ -324,7 +360,10 @@
     </svg>
   </div>
   <div>
-    <div class="club-name" id="header-club">Athlone CC</div>
+    <div style="display:flex;align-items:baseline;gap:8px">
+      <div class="club-name" id="header-club">Athlone CC</div>
+      <div style="font-size:9px;color:var(--muted);letter-spacing:.06em;white-space:nowrap">Developed by Arjun</div>
+    </div>
     <div class="sys-line" id="header-sys">SYS:2025/26 ▸ PLAYERS</div>
   </div>
   <div class="status-dot"></div>
@@ -1221,6 +1260,9 @@ let scoring = {
   ballLog: [],       // array of ball events
   target: null,
   innings1: null,    // saved after first innings
+  battingSquad: [],   // player names for batting team
+  fieldingSquad: [],  // player names for fielding team
+  bowler2: "",        // pre-entered 2nd over bowler
 };
 
 function scoringBatsman(name) {
@@ -1248,37 +1290,85 @@ function renderScoring() {
   let html = "";
 
   if (!scoring.active) {
-    // Setup screen
-    html += pageHeader("Scoring", "Set up a new match to start scoring");
-    html += `<div class="form-card">
-      <div class="form-title">New Match</div>
-      <div style="margin-bottom:10px"><label class="label">Batting Team</label><input class="input" id="sc-bat" placeholder="e.g. Athlone 3" value="${scoring.battingTeam}"></div>
-      <div style="margin-bottom:10px"><label class="label">Fielding Team</label><input class="input" id="sc-field" placeholder="e.g. DLR County 5" value="${scoring.fieldingTeam}"></div>
-      <div style="margin-bottom:10px"><label class="label">Match Type</label>
-        <select class="input" id="sc-match-type">
-          ${["League","Cup","Friendly","Knockout","T20 League","T20 Cup"].map(t => `<option${(scoring.matchType||"League")===t?" selected":""}>${t}</option>`).join("")}
-        </select>
+    // ── SETUP SCREEN ──────────────────────────────────────────────────────
+    html += `
+    <div style="text-align:center;padding:20px 0 10px">
+      <div style="font-size:28px;font-weight:900;color:#111111;text-shadow:none">🏏 New Match</div>
+      <div style="font-size:13px;color:#555555;margin-top:4px">Fill in the details below to begin scoring</div>
+    </div>
+
+    <div style="background:#f7f7f7;border:1px solid #00aa6622;border-radius:8px;padding:18px;margin-bottom:12px">
+      <div style="font-size:11px;color:#111111;font-weight:700;letter-spacing:.14em;text-transform:uppercase;margin-bottom:12px">⚙ Match Details</div>
+      <div style="margin-bottom:12px">
+        <label class="label">🏠 Our Team</label>
+        <input class="input" id="sc-bat" placeholder="e.g. Athlone 3" value="${scoring.battingTeam}" style="font-size:15px">
       </div>
-      <div style="margin-bottom:10px"><label class="label">Toss Won By</label><input class="input" id="sc-toss-winner" placeholder="Team that won the toss" value="${scoring.tossWinner||''}"></div>
-      <div style="margin-bottom:10px">
-        <label class="label">Elected To</label>
-        <div class="flex-row">
-          <button class="toggle-btn${(scoring.tossDecision||'bat')==='bat'?' active-cyan':''}" onclick="scSetToss(this,'bat')">Bat</button>
-          <button class="toggle-btn${scoring.tossDecision==='field'?' active-cyan':''}" onclick="scSetToss(this,'field')">Field</button>
+      <div style="margin-bottom:12px">
+        <label class="label">🏟 Opponents</label>
+        <input class="input" id="sc-field" placeholder="e.g. DLR County 5" value="${scoring.fieldingTeam}" style="font-size:15px">
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px">
+        <div>
+          <label class="label">📋 Match Type</label>
+          <select class="input" id="sc-match-type" style="font-size:13px;background:#ffffff;color:#111111;border:1px solid #cccccc;font-family:'Segoe UI',sans-serif">
+            ${["League","Cup","Friendly","Knockout","T20 League","T20 Cup"].map(t => `<option style="background:#ffffff;color:#111111"${(scoring.matchType||"League")===t?" selected":""}>${t}</option>`).join("")}
+          </select>
+        </div>
+        <div>
+          <label class="label">🕐 Overs Per Side</label>
+          <input class="input" id="sc-overs" type="number" value="${scoring.totalOvers}" min="1" max="100" style="font-size:15px;text-align:center">
         </div>
       </div>
-      <div style="margin-bottom:10px"><label class="label">Overs</label><input class="input" id="sc-overs" type="number" value="${scoring.totalOvers}" min="1" max="100"></div>
-      <div style="margin-bottom:10px"><label class="label">Opening Striker</label><input class="input" id="sc-striker" placeholder="Batsman name" value="${scoring.striker}"></div>
-      <div style="margin-bottom:10px"><label class="label">Opening Non-Striker</label><input class="input" id="sc-nonstriker" placeholder="Batsman name" value="${scoring.nonStriker}"></div>
-      <div style="margin-bottom:16px"><label class="label">Opening Bowler</label><input class="input" id="sc-bowler" placeholder="Bowler name" value="${scoring.bowler}"></div>
-      <button class="btn btn-primary" onclick="startScoring()">Start Scoring</button>
-    </div>`;
+    </div>
+
+    <div style="background:#f7f7f7;border:1px solid #00aa6622;border-radius:8px;padding:18px;margin-bottom:12px">
+      <div style="font-size:11px;color:#111111;font-weight:700;letter-spacing:.14em;text-transform:uppercase;margin-bottom:12px">🪙 Toss</div>
+      <div style="margin-bottom:12px">
+        <label class="label">Who Won the Toss?</label>
+        <input class="input" id="sc-toss-winner" placeholder="Team name" value="${scoring.tossWinner||''}" style="font-size:14px">
+      </div>
+      <div>
+        <label class="label">They Chose To...</label>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+          <button onclick="scSetToss(this,'bat')" style="padding:14px;border-radius:6px;border:2px solid ${(scoring.tossDecision||'bat')==='bat'?'#111111':'#cccccc'};background:transparent;color:#111111;font-family:'Courier New',monospace;font-size:15px;font-weight:700;cursor:pointer" id="toss-bat">🏏 BAT</button>
+          <button onclick="scSetToss(this,'field')" style="padding:14px;border-radius:6px;border:2px solid ${scoring.tossDecision==='field'?'#111111':'#cccccc'};background:transparent;color:#111111;font-family:'Courier New',monospace;font-size:15px;font-weight:700;cursor:pointer" id="toss-field">🥎 FIELD</button>
+        </div>
+      </div>
+    </div>
+
+    <div style="background:#f7f7f7;border:1px solid #00aa6622;border-radius:8px;padding:18px;margin-bottom:16px">
+      <div style="font-size:11px;color:#111111;font-weight:700;letter-spacing:.14em;text-transform:uppercase;margin-bottom:12px">👥 Players at Start</div>
+
+
+
+      <div style="margin-bottom:12px">
+        <label class="label">🏏 Batsman on Strike (Facing First Ball)</label>
+        <input class="input" id="sc-striker" placeholder="Name of opening batsman" value="${scoring.striker}" style="font-size:14px">
+      </div>
+      <div style="margin-bottom:12px">
+        <label class="label">🏃 Batsman at Non-Striker End</label>
+        <input class="input" id="sc-nonstriker" placeholder="Name of other opener" value="${scoring.nonStriker}" style="font-size:14px">
+      </div>
+      <div>
+        <label class="label">⚡ 1st Over Bowler</label>
+        <input class="input" id="sc-bowler" placeholder="Name of first bowler" value="${scoring.bowler}" style="font-size:14px">
+      </div>
+      <div>
+        <label class="label">⚡ 2nd Over Bowler</label>
+        <input class="input" id="sc-bowler2" placeholder="Name of second bowler" value="${scoring.bowler2||''}" style="font-size:14px">
+      </div>
+    </div>
+
+    <button onclick="startScoring()" style="width:100%;padding:18px;border-radius:8px;border:2px solid #00aa66;background:#f0f0f0;color:#111111;font-family:'Courier New',monospace;font-size:16px;font-weight:900;cursor:pointer;letter-spacing:.1em;text-transform:uppercase;box-shadow:0 2px 8px #00000018;margin-bottom:20px">
+      ▶ START SCORING
+    </button>`;
 
     if (scoring.innings1) {
-      html += `<div class="card" style="margin-top:16px">
-        <div class="section-label">1st Innings Result</div>
-        <div style="font-size:22px;font-weight:900;color:var(--accent)">${scoring.innings1.team}: ${scoring.innings1.runs}/${scoring.innings1.wickets}</div>
-        <div style="font-size:12px;color:var(--muted);margin-top:4px">${oversDisplay(scoring.innings1.totalBalls)} overs</div>
+      html += `<div style="background:#f7f7f7;border:1px solid #00aa6633;border-radius:8px;padding:16px;text-align:center">
+        <div style="font-size:11px;color:#111111;font-weight:700;letter-spacing:.14em;text-transform:uppercase;margin-bottom:8px">1st Innings Complete</div>
+        <div style="font-size:32px;font-weight:900;color:#111111">${scoring.innings1.team}: ${scoring.innings1.runs}/${scoring.innings1.wickets}</div>
+        <div style="font-size:13px;color:#555555;margin-top:4px">${oversDisplay(scoring.innings1.totalBalls)} overs &nbsp;·&nbsp; Target: ${scoring.innings1.runs + 1}</div>
+        <div style="font-size:12px;color:#555555;margin-top:8px">👆 Fill in the 2nd innings batting & bowling details above, then press Start Scoring</div>
       </div>`;
     }
 
@@ -1292,104 +1382,140 @@ function renderScoring() {
 
     html += `
     <!-- SCOREBOARD -->
-    <div style="background:#030a06;border:1px solid #00ff9d55;border-radius:6px;padding:16px;margin-bottom:12px;text-align:center">
-      <div style="font-size:11px;color:var(--muted);letter-spacing:.12em;text-transform:uppercase;margin-bottom:2px">${scoring.battingTeam} vs ${scoring.fieldingTeam} · ${scoring.matchType||''}</div>
-      <div style="font-size:56px;font-weight:900;color:var(--accent);font-family:'Courier New',monospace;line-height:1;text-shadow:0 0 30px #00ff9d88">${scoring.runs}<span style="font-size:34px;color:#00cc7a">/${scoring.wickets}</span></div>
-      <div style="font-size:14px;color:var(--muted);margin-top:4px">${oversDisplay(scoring.totalBalls)} / ${scoring.totalOvers} overs &nbsp;·&nbsp; RR ${runRate()}</div>
-      ${needing ? `<div style="font-size:13px;color:#ffe500;margin-top:6px;font-weight:700">${needing} &nbsp;·&nbsp; RRR ${reqRunRate()}</div>` : ""}
-      ${scoring.tossWinner ? `<div style="font-size:11px;color:var(--muted);margin-top:4px">🪙 ${scoring.tossWinner} won toss · elected to ${scoring.tossDecision}</div>` : ""}
+    <div style="background:#f7f7f7;border:1px solid #00aa6644;border-radius:6px;padding:16px;margin-bottom:12px;text-align:center">
+      <div style="font-size:11px;color:#555555;letter-spacing:.06em;text-transform:uppercase;margin-bottom:2px">${scoring.battingTeam} vs ${scoring.fieldingTeam} · ${scoring.matchType||''}</div>
+      <div style="font-size:56px;font-weight:900;color:#111111;font-family:'Courier New',monospace;line-height:1;text-shadow:none">${scoring.runs}<span style="font-size:34px;color:#111111">/${scoring.wickets}</span></div>
+      <div style="font-size:14px;color:#555555;margin-top:4px">${oversDisplay(scoring.totalBalls)} / ${scoring.totalOvers} overs &nbsp;·&nbsp; RR ${runRate()}</div>
+      ${needing ? `<div style="font-size:13px;color:#cc8800;margin-top:6px;font-weight:700">${needing} &nbsp;·&nbsp; RRR ${reqRunRate()}</div>` : ""}
+      ${scoring.tossWinner ? `<div style="font-size:11px;color:#555555;margin-top:4px">🪙 ${scoring.tossWinner} won toss · elected to ${scoring.tossDecision}</div>` : ""}
     </div>
 
     <!-- BATSMEN — tap to swap strike -->
     <div style="display:flex;gap:8px;margin-bottom:12px">
-      <div onclick="swapEnds()" style="flex:1;background:#00ff9d18;border:2px solid #00ff9d;border-radius:6px;padding:12px;cursor:pointer;text-align:center">
-        <div style="font-size:9px;color:var(--accent);font-weight:700;letter-spacing:.12em;text-transform:uppercase">🏏 STRIKER</div>
-        <div style="font-weight:900;color:var(--accent);font-size:15px;margin-top:4px">${scoring.striker || "—"}</div>
-        ${scoring.striker ? `<div style="font-size:12px;color:var(--muted);margin-top:2px">${scoringBatsman(scoring.striker).runs} (${scoringBatsman(scoring.striker).balls}b)</div>` : ""}
+      <div onclick="swapEnds()" style="flex:1;background:#ffffff;border:2px solid #00aa66;border-radius:6px;padding:12px;cursor:pointer;text-align:center">
+        <div style="font-size:9px;color:#111111;font-weight:700;letter-spacing:.06em;text-transform:uppercase">🏏 STRIKER</div>
+        <div style="font-weight:900;color:#111111;font-size:15px;margin-top:4px">${scoring.striker || "—"}</div>
+        ${scoring.striker ? `<div style="font-size:12px;color:#555555;margin-top:2px">${scoringBatsman(scoring.striker).runs} (${scoringBatsman(scoring.striker).balls})</div>` : ""}
       </div>
-      <div onclick="swapEnds()" style="flex:1;background:#00ff9d08;border:1px solid #00ff9d44;border-radius:6px;padding:12px;cursor:pointer;text-align:center">
-        <div style="font-size:9px;color:var(--muted);font-weight:700;letter-spacing:.12em;text-transform:uppercase">NON-STRIKER</div>
-        <div style="font-weight:700;color:var(--accent);font-size:15px;margin-top:4px">${scoring.nonStriker || "—"}</div>
-        ${scoring.nonStriker ? `<div style="font-size:12px;color:var(--muted);margin-top:2px">${scoringBatsman(scoring.nonStriker).runs} (${scoringBatsman(scoring.nonStriker).balls}b)</div>` : ""}
+      <div onclick="swapEnds()" style="flex:1;background:#ffffff;border:1px solid #00aa6633;border-radius:6px;padding:12px;cursor:pointer;text-align:center">
+        <div style="font-size:9px;color:#555555;font-weight:700;letter-spacing:.06em;text-transform:uppercase">NON-STRIKER</div>
+        <div style="font-weight:700;color:#111111;font-size:15px;margin-top:4px">${scoring.nonStriker || "—"}</div>
+        ${scoring.nonStriker ? `<div style="font-size:12px;color:#555555;margin-top:2px">${scoringBatsman(scoring.nonStriker).runs} (${scoringBatsman(scoring.nonStriker).balls})</div>` : ""}
       </div>
     </div>
 
     <!-- BOWLER & THIS OVER -->
-    <div style="background:#030a06;border:1px solid #00ff9d22;border-radius:6px;padding:12px;margin-bottom:12px">
+    <div style="background:#f7f7f7;border:1px solid #dddddd;border-radius:6px;padding:12px;margin-bottom:12px">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
         <div>
-          <div style="font-size:9px;color:var(--muted);letter-spacing:.12em;text-transform:uppercase">BOWLER · Over ${over}</div>
-          <div style="font-weight:700;color:var(--accent);font-size:14px">${scoring.bowler || "—"} &nbsp;<span style="font-size:12px;color:var(--muted)">${scoring.bowler ? scoringBowler(scoring.bowler).runs+"R "+scoringBowler(scoring.bowler).wickets+"W" : ""}</span></div>
+          <div style="font-size:9px;color:#555555;letter-spacing:.06em;text-transform:uppercase">BOWLER · Over ${over}</div>
+          <div style="font-weight:700;color:#111111;font-size:14px">${scoring.bowler || "—"} &nbsp;<span style="font-size:12px;color:#555555">${scoring.bowler ? scoringBowler(scoring.bowler).runs+"R "+scoringBowler(scoring.bowler).wickets+"W" : ""}</span></div>
         </div>
-        <div style="font-size:12px;color:var(--muted)">Ball ${ballsThisOver}/6</div>
+        <div style="font-size:12px;color:#555555">Ball ${ballsThisOver}/6</div>
       </div>
       <div style="display:flex;gap:5px">
         ${scoring.ballLog.slice(-6).map(b => {
-          const col = b==="W"?"#ff2d55":b==="Wd"||b==="Nb"?"#ffe500":b==="6"?"#bf3aff":b==="4"?"#00cc7a":"var(--accent)";
-          return `<div style="width:36px;height:36px;border-radius:50%;border:2px solid ${col};background:${col}22;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:13px;color:${col};font-family:'Courier New',monospace;flex-shrink:0">${b}</div>`;
+          return `<div style="width:36px;height:36px;border-radius:50%;border:2px solid #111111;background:#f0f0f0;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:13px;color:#111111;font-family:'Courier New',monospace;flex-shrink:0">${b}</div>`;
         }).join("")}
-        ${Array(Math.max(0,6-scoring.ballLog.slice(-6).length)).fill('<div style="width:36px;height:36px;border-radius:50%;border:1px dashed #00ff9d22;flex-shrink:0"></div>').join("")}
+        ${Array(Math.max(0,6-scoring.ballLog.slice(-6).length)).fill('<div style="width:36px;height:36px;border-radius:50%;border:1px dashed #cccccc;flex-shrink:0"></div>').join("")}
       </div>
     </div>
 
     ${overComplete ? `
     <!-- END OF OVER PROMPT -->
-    <div style="background:#00ff9d18;border:2px solid #00ff9d;border-radius:6px;padding:16px;margin-bottom:12px;text-align:center">
-      <div style="color:var(--accent);font-weight:900;font-size:15px;margin-bottom:12px">⚡ OVER COMPLETE</div>
-      <input class="input" id="sc-new-bowler" placeholder="New bowler name" style="margin-bottom:10px;text-align:center;font-size:14px">
-      <button onclick="endOver()" style="width:100%;padding:14px;border-radius:6px;border:2px solid var(--accent);background:#00ff9d22;color:var(--accent);font-family:'Courier New',monospace;font-size:14px;font-weight:900;cursor:pointer;letter-spacing:.08em;text-transform:uppercase">End Over →</button>
+    <div style="background:#ffffff;border:2px solid #00aa66;border-radius:6px;padding:16px;margin-bottom:12px;text-align:center">
+      <div style="color:#111111;font-weight:900;font-size:15px;margin-bottom:12px">⚡ OVER COMPLETE — Choose New Bowler</div>
+      <input class="input" id="sc-new-bowler" placeholder="New bowler name" value="${scoring.bowler2 && scoring.totalBalls <= 6 ? scoring.bowler2 : ''}" style="margin-bottom:10px;text-align:center;font-size:14px">
+      <button onclick="endOver()" style="width:100%;padding:14px;border-radius:6px;border:2px solid #00aa66;background:#f0f0f0;color:#111111;font-family:'Courier New',monospace;font-size:14px;font-weight:900;cursor:pointer;letter-spacing:.08em;text-transform:uppercase">End Over →</button>
     </div>` : `
     <!-- BIG RUN BUTTONS -->
     <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:8px">
-      ${["0","1","2","3"].map(r => `<button onclick="addBall('${r}')" style="padding:20px 0;border-radius:6px;border:1px solid #00ff9d44;background:#00ff9d12;color:var(--accent);font-family:'Courier New',monospace;font-size:22px;font-weight:900;cursor:pointer;transition:background .15s" onmouseover="this.style.background='#00ff9d2a'" onmouseout="this.style.background='#00ff9d12'">${r}</button>`).join("")}
+      ${["0","1","2","3"].map(r => `<button onclick="addBall('${r}')" style="padding:20px 0;border-radius:6px;border:1px solid #00aa6633;background:#ffffff;color:#111111;font-family:'Courier New',monospace;font-size:22px;font-weight:900;cursor:pointer;transition:background .15s" onmouseover="this.style.background='#00ff9d2a'" onmouseout="this.style.background='#00ff9d12'">${r}</button>`).join("")}
     </div>
     <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:8px">
-      <button onclick="addBall('4')" style="padding:20px 0;border-radius:6px;border:2px solid #00cc7a;background:#00cc7a18;color:#00cc7a;font-family:'Courier New',monospace;font-size:24px;font-weight:900;cursor:pointer;box-shadow:0 0 12px #00cc7a33">4</button>
-      <button onclick="addBall('6')" style="padding:20px 0;border-radius:6px;border:2px solid #bf3aff;background:#bf3aff18;color:#bf3aff;font-family:'Courier New',monospace;font-size:24px;font-weight:900;cursor:pointer;box-shadow:0 0 12px #bf3aff33">6</button>
-      <button onclick="addWicket()" style="padding:20px 0;border-radius:6px;border:2px solid #ff2d55;background:#ff2d5518;color:#ff2d55;font-family:'Courier New',monospace;font-size:16px;font-weight:900;cursor:pointer;box-shadow:0 0 12px #ff2d5533;letter-spacing:.04em">OUT</button>
+      <button onclick="addBall('4')" style="padding:20px 0;border-radius:6px;border:2px solid #007744;background:#ffffff;color:#111111;font-family:'Courier New',monospace;font-size:24px;font-weight:900;cursor:pointer;box-shadow:0 2px 6px #00000018">4</button>
+      <button onclick="addBall('6')" style="padding:20px 0;border-radius:6px;border:2px solid #9933cc;background:#f9f9f9;color:#9933cc;font-family:'Courier New',monospace;font-size:24px;font-weight:900;cursor:pointer;box-shadow:0 2px 6px #00000018">6</button>
+      <button onclick="addWicket()" style="padding:20px 0;border-radius:6px;border:2px solid #ff2d55;background:#fff5f6;color:#ff2d55;font-family:'Courier New',monospace;font-size:16px;font-weight:900;cursor:pointer;box-shadow:0 2px 6px #ff2d5533;letter-spacing:.04em">OUT</button>
     </div>
     <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:8px">
-      <button onclick="addExtra('wide')"   style="padding:12px 0;border-radius:6px;border:1px solid #ffe50066;background:#ffe50012;color:#ffe500;font-family:'Courier New',monospace;font-size:12px;font-weight:700;cursor:pointer">Wd</button>
-      <button onclick="addExtra('noball')" style="padding:12px 0;border-radius:6px;border:1px solid #ffe50066;background:#ffe50012;color:#ffe500;font-family:'Courier New',monospace;font-size:12px;font-weight:700;cursor:pointer">Nb</button>
-      <button onclick="addExtra('bye')"    style="padding:12px 0;border-radius:6px;border:1px solid #00ff9d33;background:#00ff9d08;color:var(--muted);font-family:'Courier New',monospace;font-size:12px;font-weight:700;cursor:pointer">Bye</button>
-      <button onclick="addExtra('legbye')" style="padding:12px 0;border-radius:6px;border:1px solid #00ff9d33;background:#00ff9d08;color:var(--muted);font-family:'Courier New',monospace;font-size:12px;font-weight:700;cursor:pointer">Lb</button>
+      <button onclick="addExtra('wide')"   style="padding:12px 0;border-radius:6px;border:1px solid #cc880033;background:#fffff5;color:#cc8800;font-family:'Courier New',monospace;font-size:12px;font-weight:700;cursor:pointer">Wd</button>
+      <button onclick="addExtra('noball')" style="padding:12px 0;border-radius:6px;border:1px solid #cc880033;background:#fffff5;color:#cc8800;font-family:'Courier New',monospace;font-size:12px;font-weight:700;cursor:pointer">Nb</button>
+      <button onclick="addExtra('bye')"    style="padding:12px 0;border-radius:6px;border:1px solid #00aa6622;background:#ffffff;color:#555555;font-family:'Courier New',monospace;font-size:12px;font-weight:700;cursor:pointer">Bye</button>
+      <button onclick="addExtra('legbye')" style="padding:12px 0;border-radius:6px;border:1px solid #00aa6622;background:#ffffff;color:#555555;font-family:'Courier New',monospace;font-size:12px;font-weight:700;cursor:pointer">Lb</button>
     </div>
-    <button onclick="undoLast()" style="width:100%;padding:12px;border-radius:6px;border:1px solid #00ff9d22;background:transparent;color:var(--muted);font-family:'Courier New',monospace;font-size:13px;font-weight:700;cursor:pointer;margin-bottom:12px">↩ Undo Last Ball</button>`}
+    <button onclick="undoLast()" style="width:100%;padding:12px;border-radius:6px;border:1px solid #dddddd;background:transparent;color:#555555;font-family:'Courier New',monospace;font-size:13px;font-weight:700;cursor:pointer;margin-bottom:12px">↩ Undo Last Ball</button>`}
 
-    <!-- NEW BATSMAN (shows after wicket or as needed) -->
-    <div style="background:#030a06;border:1px solid #00ff9d22;border-radius:6px;padding:12px;margin-bottom:8px">
-      <div style="font-size:9px;color:var(--muted);letter-spacing:.12em;text-transform:uppercase;margin-bottom:8px">New Batsman / Change Bowler</div>
-      <div style="display:flex;gap:8px;margin-bottom:8px">
-        <input class="input" id="sc-new-bat" placeholder="New batsman" style="flex:1">
-        <button onclick="newBatsman()" style="padding:10px 14px;border-radius:6px;border:1px solid #00ff9d;background:#00ff9d18;color:var(--accent);font-family:'Courier New',monospace;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap">Set</button>
+    <!-- NEW BATSMAN / BOWLER -->
+    <div style="background:#f7f7f7;border:1px solid #dddddd;border-radius:6px;padding:12px;margin-bottom:8px">
+      <div style="font-size:9px;color:#555555;letter-spacing:.06em;text-transform:uppercase;margin-bottom:10px">🔄 New Batsman / Change Bowler</div>
+
+      <div style="margin-bottom:10px">
+        <label class="label">New Batsman</label>
+        <div style="display:flex;gap:8px;margin-bottom:6px">
+          <input class="input" id="sc-new-bat" placeholder="Type or tap name below" style="flex:1">
+          <button onclick="newBatsman()" style="padding:10px 14px;border-radius:6px;border:1px solid #00ff9d;background:#00ff9d18;color:#111111;font-family:'Courier New',monospace;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap">✓ Set</button>
+        </div>
       </div>
-      <div style="display:flex;gap:8px">
-        <input class="input" id="sc-mid-bowler" placeholder="New bowler" style="flex:1">
-        <button onclick="changeBowler()" style="padding:10px 14px;border-radius:6px;border:1px solid #00ff9d;background:#00ff9d18;color:var(--accent);font-family:'Courier New',monospace;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap">Set</button>
+
+      <div>
+        <label class="label">New Bowler</label>
+        <div style="display:flex;gap:8px;margin-bottom:6px">
+          <input class="input" id="sc-mid-bowler" placeholder="Type or tap name below" style="flex:1">
+          <button onclick="changeBowler()" style="padding:10px 14px;border-radius:6px;border:1px solid #00ff9d;background:#00ff9d18;color:#111111;font-family:'Courier New',monospace;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap">✓ Set</button>
+        </div>
       </div>
     </div>
 
     <!-- EXTRAS + CONTROLS -->
     <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:10px;text-align:center">
       ${[["Wd",scoring.extras.wides,"#ffe500"],["Nb",scoring.extras.noBalls,"#ffe500"],["By",scoring.extras.byes,"var(--muted)"],["Lb",scoring.extras.legByes,"var(--muted)"]].map(([l,v,c])=>`
-        <div style="background:#00ff9d08;border:1px solid #00ff9d22;border-radius:4px;padding:8px">
+        <div style="background:#ffffff;border:1px solid #dddddd;border-radius:4px;padding:8px">
           <div style="font-size:16px;font-weight:900;color:${c}">${v}</div>
-          <div style="font-size:10px;color:var(--muted)">${l}</div>
+          <div style="font-size:10px;color:#555555">${l}</div>
         </div>`).join("")}
     </div>
 
     <div style="display:flex;gap:8px;margin-bottom:20px">
-      ${scoring.innings === 1 ? `<button onclick="endInnings()" style="flex:1;padding:12px;border-radius:6px;border:1px solid #00ff9d33;background:transparent;color:var(--muted);font-family:'Courier New',monospace;font-size:12px;font-weight:700;cursor:pointer">End 1st Innings</button>` : ""}
+      ${scoring.innings === 1 ? `<button onclick="endInnings()" style="flex:1;padding:12px;border-radius:6px;border:1px solid #00aa6622;background:transparent;color:#555555;font-family:'Courier New',monospace;font-size:12px;font-weight:700;cursor:pointer">End 1st Innings</button>` : ""}
       <button onclick="resetScoring()" style="flex:1;padding:12px;border-radius:6px;border:1px solid #ff2d5544;background:transparent;color:#ff2d55;font-family:'Courier New',monospace;font-size:12px;font-weight:700;cursor:pointer" id="reset-btn">Reset Match</button>
     </div>`;
   }
 
-  document.getElementById("tab-Scoring").innerHTML = html;
+  document.getElementById("tab-Scoring").innerHTML =
+    `<div style="background:#ffffff;color:#111111;min-height:100%;font-family:'Segoe UI',sans-serif;padding-bottom:10px">` + html + `</div>`;
+}
+
+function loadScoringSquad() {
+  const sel = document.getElementById('sc-fixture-select');
+  const matchId = sel ? +sel.value : null;
+  if (!matchId) {
+    showSyncToast("Please select a fixture first", "warn");
+    return;
+  }
+  const ids = matchPlayers[matchId] || [];
+  if (ids.length === 0) {
+    showSyncToast("No players added to this fixture yet", "warn");
+    return;
+  }
+  const names = ids.map(id => { const p = players.find(x => x.id === id); return p ? p.name : null; }).filter(Boolean);
+  // All fixture players go into both squads — scorer assigns batting/fielding roles
+  scoring.battingSquad  = names;
+  scoring.fieldingSquad = names;
+  saveData();
+  renderScoring();
+  showSyncToast(`✓ ${names.length} players loaded`, "success");
 }
 
 function scSetToss(btn, decision) {
-  btn.closest('.flex-row').querySelectorAll('.toggle-btn').forEach(b => b.classList.remove('active-cyan'));
-  btn.classList.add('active-cyan');
+  scoring.tossDecision = decision;
+  ['toss-bat','toss-field'].forEach(id => {
+    const b = document.getElementById(id);
+    if (!b) return;
+    const active = b.id === 'toss-' + decision;
+    b.style.borderColor = active ? '#111111' : '#cccccc';
+    b.style.background  = 'transparent';
+    b.style.color       = '#111111';
+  });
 }
 
 function startScoring() {
@@ -1399,11 +1525,13 @@ function startScoring() {
   const str   = document.getElementById('sc-striker')?.value?.trim();
   const nstr  = document.getElementById('sc-nonstriker')?.value?.trim();
   const bowl  = document.getElementById('sc-bowler')?.value?.trim();
+  const bowl2 = document.getElementById('sc-bowler2')?.value?.trim() || "";
   const tossW = document.getElementById('sc-toss-winner')?.value?.trim() || "";
   const tossD = document.querySelector('.flex-row .active-cyan')?.textContent?.trim().toLowerCase() === "field" ? "field" : "bat";
   const matchType = document.getElementById('sc-match-type')?.value || "League";
   if (!bat || !field || !str || !nstr || !bowl) { alert("Please fill in all fields."); return; }
-  scoring = { ...scoring, active:true, matchName:`${bat} vs ${field}`, battingTeam:bat, fieldingTeam:field, totalOvers:overs, innings:1, tossWinner:tossW, tossDecision:tossD, matchType, runs:0, wickets:0, balls:0, totalBalls:0, extras:{wides:0,noBalls:0,byes:0,legByes:0}, striker:str, nonStriker:nstr, bowler:bowl, batsmen:{}, bowlers:{}, ballLog:[], target:null };
+  scoring = { ...scoring, active:true, matchName:`${bat} vs ${field}`, battingTeam:bat, fieldingTeam:field, totalOvers:overs, innings:1, tossWinner:tossW, tossDecision:tossD, matchType, runs:0, wickets:0, balls:0, totalBalls:0, extras:{wides:0,noBalls:0,byes:0,legByes:0}, striker:str, nonStriker:nstr, bowler:bowl, bowler2:bowl2, batsmen:{}, bowlers:{}, ballLog:[], target:null,
+    battingSquad: scoring.battingSquad, fieldingSquad: scoring.fieldingSquad };
   scoringBatsman(str); scoringBatsman(nstr); scoringBowler(bowl);
   renderScoring();
 }
@@ -1428,22 +1556,28 @@ function addBall(runs) {
 
 function addExtra(type) {
   if (type === "wide") {
+    // Wide: adds 1 run, does NOT count as a legal ball
     scoring.runs++; scoring.extras.wides++;
     scoringBowler(scoring.bowler).runs++; scoringBowler(scoring.bowler).wides++;
     scoring.ballLog.push("Wd");
   } else if (type === "noball") {
+    // No ball: adds 1 run, does NOT count as a legal ball
     scoring.runs++; scoring.extras.noBalls++;
     scoringBowler(scoring.bowler).runs++; scoringBowler(scoring.bowler).noBalls++;
     scoring.ballLog.push("Nb");
   } else if (type === "bye") {
+    // Bye: counts as a legal ball, adds 1 run (not to batsman)
     scoring.runs++; scoring.extras.byes++;
     scoring.balls++; scoring.totalBalls++;
     scoringBatsman(scoring.striker).balls++;
+    scoringBowler(scoring.bowler).balls++;
     scoring.ballLog.push("B");
   } else if (type === "legbye") {
+    // Leg bye: counts as a legal ball, adds 1 run (not to batsman)
     scoring.runs++; scoring.extras.legByes++;
     scoring.balls++; scoring.totalBalls++;
     scoringBatsman(scoring.striker).balls++;
+    scoringBowler(scoring.bowler).balls++;
     scoring.ballLog.push("Lb");
   }
   saveData(); renderScoring();
@@ -1470,13 +1604,16 @@ function undoLast() {
 }
 
 function endOver() {
-  const newBowler = document.getElementById('sc-new-bowler')?.value?.trim();
-  if (!newBowler) { alert("Enter new bowler name."); return; }
+  const input = document.getElementById('sc-new-bowler');
+  // Auto-fill with pre-entered 2nd bowler if this is end of over 1 and it hasn't been used yet
+  const newBowler = input?.value?.trim() || (scoring.totalBalls <= 6 && scoring.bowler2 ? scoring.bowler2 : "");
+  if (!newBowler) { showSyncToast("Enter next bowler name", "warn"); return; }
   scoring.bowler = newBowler;
+  // Clear bowler2 once it's been auto-used
+  if (newBowler === scoring.bowler2) scoring.bowler2 = "";
   scoringBowler(newBowler);
   scoring.balls = 0;
   scoring.ballLog = [];
-  // Swap striker/non-striker at end of over
   const tmp = scoring.striker; scoring.striker = scoring.nonStriker; scoring.nonStriker = tmp;
   saveData(); renderScoring();
 }
@@ -1578,7 +1715,7 @@ renderProfile();
 
 // ── Google Sheets Sync ────────────────────────────────────────────────────
 // Paste your deployed Apps Script Web App URL below after "SYNC_URL ="
-const SYNC_URL = "https://script.google.com/macros/s/AKfycbwwl5OzdU79nz2v2O9ykmnFJBahERUG2HPNwX-aljkv_Bm4ahA98Psl1ev-qqrB82L5/exec";
+const SYNC_URL = "https://script.google.com/macros/s/AKfycbxwNsjUTSgvHogGWd8XsMVMbdUXr_ffUhF9Y08kPYRox8j2ht-Rd2jaNuh2XclPrYHI/exec";
 
 let syncStatus = "idle"; // idle | syncing | success | error
 
